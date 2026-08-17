@@ -337,10 +337,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Add rejected for non-Wall (InvalidSurfaceKind) and every validator rejection; remove by window id
-- [ ] EditMode tests: add ok / each rejection kind / remove ok / remove unknown id / rollback path
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 7 tests pass
+- [x] Add rejected for non-Wall (InvalidSurfaceKind) and every validator rejection; remove by window id
+- [x] EditMode tests: add ok / each rejection kind / remove ok / remove unknown id / rollback path
+- [x] Gate passes: run_tests EditMode
+- [x] Test count: >= 7 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
