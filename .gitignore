@@ -1,0 +1,42 @@
+# Unity generated folders (per Unity project under Build/)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/[Ff]ormifyTest/[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+
+# Visual Studio / Rider / VS Code generated files
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files for auto-generated folders
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics / OS files
+sysinfo.txt
+crashlytics-build.properties
+.DS_Store

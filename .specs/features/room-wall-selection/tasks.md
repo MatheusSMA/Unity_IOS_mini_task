@@ -105,8 +105,8 @@ T27 → T29
 
 **Done when**:
 
-- [ ] manifest.json lists com.unity.render-pipelines.universal 17.x, com.unity.inputsystem, com.unity.xr.arfoundation 6.x, com.unity.xr.arkit 6.x (matching), com.unity.test-framework, com.unity.ugui at pinned versions
-- [ ] Unity resolves all packages without errors on import
+- [x] manifest.json lists com.unity.render-pipelines.universal 17.x, com.unity.inputsystem, com.unity.xr.arfoundation 6.x, com.unity.xr.arkit 6.x (matching), com.unity.test-framework, com.unity.ugui at pinned versions
+- [x] Unity resolves all packages without errors on import
 
 **Tests**: none
 **Gate**: build
