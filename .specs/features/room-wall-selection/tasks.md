@@ -526,10 +526,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Horizontal drag → yaw; vertical drag → pitch clamped; mouse works in Editor (via TouchSimulation)
-- [ ] PlayMode tests: yaw wraps past 360; pitch clamps at bounds; camera position stays inside room bounds
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 3 PlayMode tests pass
+- [x] Horizontal drag → yaw; vertical drag → pitch clamped; mouse works in Editor (via TouchSimulation)
+- [x] PlayMode tests: yaw wraps past 360; pitch clamps at bounds; camera position stays inside room bounds
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 3 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -553,10 +553,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Tap wall/floor/ceiling selects; tap empty leaves unchanged; drag never selects
-- [ ] PlayMode tests: SEL AC1-AC3 via simulated taps; miss keeps selection; WindowDraw-mode tap swallowed (stub mode)
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 5 PlayMode tests pass
+- [x] Tap wall/floor/ceiling selects; tap empty leaves unchanged; drag never selects
+- [x] PlayMode tests: SEL AC1-AC3 via simulated taps; miss keeps selection; WindowDraw-mode tap swallowed (stub mode)
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 5 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
