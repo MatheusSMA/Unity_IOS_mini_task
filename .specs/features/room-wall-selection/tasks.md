@@ -232,9 +232,9 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Console has zero errors on project open
-- [ ] `run_tests` green in EditMode and PlayMode (0 tests)
-- [ ] Build target switches to iOS without build-settings errors
+- [x] Console has zero errors on project open
+- [x] `run_tests` green in EditMode and PlayMode (0 tests)
+- [x] Build target switches to iOS without build-settings errors
 
 **Tests**: none
 **Gate**: build

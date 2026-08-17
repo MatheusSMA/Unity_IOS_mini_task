@@ -260,7 +260,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| BOOT-01 | P0: Project bootstrap | Tasks | In Tasks |
+| BOOT-01 | P0: Project bootstrap | Tasks | Verified |
 | ROOM-01 | P1: Orbit a synthetic room | Tasks | In Tasks |
 | CAM-01 | P1: Orbit a synthetic room | Tasks | In Tasks |
 | CAM-02 | P1: Orbit a synthetic room | Tasks | In Tasks |
