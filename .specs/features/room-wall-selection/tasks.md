@@ -445,10 +445,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Tapped/DragStart/DragDelta/DragEnd events fire per classification
-- [ ] PlayMode tests via InputTestFixture: short tap → Tapped; long/far move → drag only; second touch ignored; touch over uGUI blocked
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 5 PlayMode tests pass
+- [x] Tapped/DragStart/DragDelta/DragEnd events fire per classification
+- [x] PlayMode tests via InputTestFixture: short tap → Tapped; long/far move → drag only; second touch ignored; touch over uGUI blocked
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 5 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -607,9 +607,9 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Press with selection → deselected, tint removed, row updated; press with none → no event (spy on SelectionChanged)
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 2 PlayMode tests pass
+- [x] Press with selection → deselected, tint removed, row updated; press with none → no event (spy on SelectionChanged)
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 2 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
