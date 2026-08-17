@@ -272,7 +272,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | CLR-01 | P1: Clear selection | Tasks | In Tasks |
 | WIN-01 | P2: Window holes by rectangle drag | Tasks | In Tasks |
 | WIN-02 | P2: Window holes by rectangle drag | Tasks | In Tasks |
-| WIN-03 | P2: Window holes by rectangle drag | Tasks | In Tasks |
+| WIN-03 | P2: Window holes by rectangle drag | Tasks | Verified |
 | WIN-04 | P2: Window deletion | Tasks | In Tasks |
 | OUT-01 | P2: Selection outline (polish) | Tasks | In Tasks |
 | AR-01 | P3: AR pose camera mode | Tasks | In Tasks |

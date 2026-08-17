@@ -283,10 +283,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] `Validate(surface, existing, candidate)` returns clamped rect or rejection reason
-- [ ] EditMode tests cover WIN AC6-AC9, AC11 + InvalidSurfaceKind, 1:1 to ACs
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 8 tests pass
+- [x] `Validate(surface, existing, candidate)` returns clamped rect or rejection reason
+- [x] EditMode tests cover WIN AC6-AC9, AC11 + InvalidSurfaceKind, 1:1 to ACs
+- [x] Gate passes: run_tests EditMode (14 tests)
+- [x] Test count: >= 8 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
