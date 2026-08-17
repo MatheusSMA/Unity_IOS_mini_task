@@ -130,8 +130,8 @@ T27 → T29
 
 **Done when**:
 
-- [ ] URP asset + renderer asset exist and reference each other
-- [ ] No console errors on import
+- [x] URP asset + renderer asset exist and reference each other
+- [x] No console errors on import
 
 **Tests**: none
 **Gate**: build

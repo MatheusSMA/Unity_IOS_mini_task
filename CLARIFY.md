@@ -39,6 +39,13 @@ Open questions raised while executing `.specs/features/room-wall-selection/tasks
 **Assumption applied**: the stated defaults are implemented as serialized fields, so changing them is an Inspector edit, not a code change.
 **Answer**:
 
+## C-07 — T02 was already satisfied by the URP template
+
+**Raised by**: T02
+**Context**: T02 asks for a URP pipeline asset plus a Universal Renderer asset that reference each other. The project was created from the URP template, which already ships `Assets/Settings/PC_RPAsset` → `PC_Renderer` and `Mobile_RPAsset` → `Mobile_Renderer`, both correctly cross-referenced, plus `UniversalRenderPipelineGlobalSettings`.
+**Assumption applied**: no new assets created. The existing pair is used as-is; `Mobile_Renderer` is the renderer that will host the T24 outline features, since iOS is the shipping target.
+**Answer**:
+
 ## C-06 — Unity template packages left in the manifest
 
 **Raised by**: T01
