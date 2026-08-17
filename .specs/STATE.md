@@ -25,5 +25,5 @@
 
 **Last session:** 2026-08-17
 **Feature:** room-wall-selection
-**State:** Spec + design grilled (adversarial review, 2026-08-17 afternoon): 3 gaps + 3 inconsistencies + 1 underspecified found and ALL resolved with the user — window-collider vs selection raycast (AD-014), tap lock in WindowDraw + button mode gate (AD-015), 2D tap tolerance + fit-to-room + pinch zoom (AD-016), stale context.md body fixed, design footer fixed, camera eye height 1.6 m recorded. Spec gained SEL AC7, WIN AC13, TOP AC7-9. No showstoppers; no open findings. No code exists yet (docs-only repo).
-**Next step:** Tasks phase (`tasks.md` breakdown per phase P0 → P1 → P2 → P3), then Execute. docs/tecnico.md synced with the grill changes.
+**State:** Tasks phase complete (2026-08-17 evening): 29 atomic tasks across 5 phases (P0 bootstrap → domain → P1 presentation → P2 windows/outline → P3 AR/2D) in `.specs/features/room-wall-selection/tasks.md` (canonical: coverage matrix, gates, dependency diagrams, validation tables — `validate_tasks.py` passes with 0 errors) plus one detailed functional+technical doc per task in `docs/tasks/` (user-requested layout). 24/24 requirements mapped. Gates run via Unity MCP `run_tests` (fallback AD-006). Commit convention: user-global `[type] description` in English overrides check_commit.py. No code exists yet.
+**Next step:** User approval of tasks.md (incl. provisional Test Coverage Matrix + Gate Check Commands), then Execute — 29 tasks pack into ~4-5 batches, so the sub-agent offer applies.

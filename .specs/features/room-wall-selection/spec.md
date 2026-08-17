@@ -260,30 +260,30 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| BOOT-01 | P0: Project bootstrap | Design | Pending |
-| ROOM-01 | P1: Orbit a synthetic room | Design | Pending |
-| CAM-01 | P1: Orbit a synthetic room | Design | Pending |
-| CAM-02 | P1: Orbit a synthetic room | Design | Pending |
-| SEL-01 | P1: Select a surface by tapping | Design | Pending |
-| SEL-02 | P1: Select a surface by tapping | Design | Pending |
-| SEL-03 | P1: Select a surface by tapping | Design | Pending |
-| LIST-01 | P1: Real-time surface list | Design | Pending |
-| LIST-02 | P1: Real-time surface list | Design | Pending |
-| CLR-01 | P1: Clear selection | Design | Pending |
-| WIN-01 | P2: Window holes by rectangle drag | Design | Pending |
-| WIN-02 | P2: Window holes by rectangle drag | Design | Pending |
-| WIN-03 | P2: Window holes by rectangle drag | Design | Pending |
-| WIN-04 | P2: Window deletion | Design | Pending |
-| OUT-01 | P2: Selection outline (polish) | Design | Pending |
-| AR-01 | P3: AR pose camera mode | Design | Pending |
-| TOP-01 | P3: 2D / 3D view switch | Design | Pending |
-| TOP-02 | P3: 2D / 3D view switch | Design | Pending |
-| EDGE-01 | Edge Cases | Design | Pending |
-| EDGE-02 | Edge Cases | Design | Pending |
-| EDGE-03 | Edge Cases | Design | Pending |
-| EDGE-04 | Edge Cases | Design | Pending |
-| EDGE-05 | Edge Cases | Design | Pending |
-| EDGE-06 | Edge Cases | Design | Pending |
+| BOOT-01 | P0: Project bootstrap | Tasks | In Tasks |
+| ROOM-01 | P1: Orbit a synthetic room | Tasks | In Tasks |
+| CAM-01 | P1: Orbit a synthetic room | Tasks | In Tasks |
+| CAM-02 | P1: Orbit a synthetic room | Tasks | In Tasks |
+| SEL-01 | P1: Select a surface by tapping | Tasks | In Tasks |
+| SEL-02 | P1: Select a surface by tapping | Tasks | In Tasks |
+| SEL-03 | P1: Select a surface by tapping | Tasks | In Tasks |
+| LIST-01 | P1: Real-time surface list | Tasks | In Tasks |
+| LIST-02 | P1: Real-time surface list | Tasks | In Tasks |
+| CLR-01 | P1: Clear selection | Tasks | In Tasks |
+| WIN-01 | P2: Window holes by rectangle drag | Tasks | In Tasks |
+| WIN-02 | P2: Window holes by rectangle drag | Tasks | In Tasks |
+| WIN-03 | P2: Window holes by rectangle drag | Tasks | In Tasks |
+| WIN-04 | P2: Window deletion | Tasks | In Tasks |
+| OUT-01 | P2: Selection outline (polish) | Tasks | In Tasks |
+| AR-01 | P3: AR pose camera mode | Tasks | In Tasks |
+| TOP-01 | P3: 2D / 3D view switch | Tasks | In Tasks |
+| TOP-02 | P3: 2D / 3D view switch | Tasks | In Tasks |
+| EDGE-01 | Edge Cases | Tasks | In Tasks |
+| EDGE-02 | Edge Cases | Tasks | In Tasks |
+| EDGE-03 | Edge Cases | Tasks | In Tasks |
+| EDGE-04 | Edge Cases | Tasks | In Tasks |
+| EDGE-05 | Edge Cases | Tasks | In Tasks |
+| EDGE-06 | Edge Cases | Tasks | In Tasks |
 
 **ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating (mode == Orbit) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8).
 
@@ -291,7 +291,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 24 total, 0 mapped to tasks, 24 unmapped ⚠️ (tasks phase not yet run)
+**Coverage:** 24 total, 24 mapped to tasks, 0 unmapped ✅ (Requirement → Task Map in `tasks.md`; per-task docs in `docs/tasks/`)
 
 ---
 
