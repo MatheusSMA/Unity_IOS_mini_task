@@ -364,10 +364,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Zero-hole slab: 2 faces + 4 sides, correct winding; N-hole slab adds 4 reveals per hole; no vertex inside any hole rect on front/back faces
-- [ ] EditMode tests assert vertex/triangle invariants + degenerate-input validation failure
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 6 tests pass
+- [x] Zero-hole slab: 2 faces + 4 sides, correct winding; N-hole slab adds 4 reveals per hole; no vertex inside any hole rect on front/back faces
+- [x] EditMode tests assert vertex/triangle invariants + degenerate-input validation failure
+- [x] Gate passes: run_tests EditMode
+- [x] Test count: >= 6 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
