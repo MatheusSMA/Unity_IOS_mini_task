@@ -499,10 +499,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Play Mode shows 4 walls + floor + ceiling as solid slabs
-- [ ] PlayMode test: scene load yields 6 SurfaceViews with colliders matching RoomDefinition
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 2 PlayMode tests pass
+- [x] Play Mode shows 4 walls + floor + ceiling as solid slabs
+- [x] PlayMode test: scene load yields 6 SurfaceViews with colliders matching RoomDefinition
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 2 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
