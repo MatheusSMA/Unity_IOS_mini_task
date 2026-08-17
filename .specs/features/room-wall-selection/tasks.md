@@ -714,10 +714,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Selected surface shows outline + tint from any angle
-- [ ] PlayMode test: selected surface still hittable (re-tap keeps selection, no deselect) - OUT AC2
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 2 PlayMode tests pass
+- [x] Selected surface shows outline + tint from any angle
+- [x] PlayMode test: selected surface still hittable (re-tap keeps selection, no deselect) - OUT AC2
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 2 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full

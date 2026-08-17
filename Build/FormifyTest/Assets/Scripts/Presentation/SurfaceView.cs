@@ -14,6 +14,24 @@ namespace Formify.Presentation
     {
         private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
 
+        private const int LayerUnresolved = -2;
+
+        private static int _outlineLayer = LayerUnresolved;
+
+        /// <summary>
+        /// The layer the two outline RenderObjects features filter on (T24, OUT-01). Resolved on first use,
+        /// never in a field initializer: Unity forbids NameToLayer during MonoBehaviour construction. -1 when
+        /// the project has no such layer, which disables the swap instead of breaking selection.
+        /// </summary>
+        private static int OutlineLayer
+        {
+            get
+            {
+                if (_outlineLayer == LayerUnresolved) _outlineLayer = LayerMask.NameToLayer("SelectedSurface");
+                return _outlineLayer;
+            }
+        }
+
         [SerializeField] private Color baseColor = Color.white;
         [SerializeField] private Color tintColor = new Color(1f, 0.45f, 0.05f, 1f);
 
@@ -25,6 +43,7 @@ namespace Formify.Presentation
         private MaterialPropertyBlock _block;
         private RoomModel _model;
         private Mesh _mesh;
+        private int _restoreLayer;
 
         public SurfaceDefinition Surface { get; private set; }
 
@@ -83,6 +102,20 @@ namespace Formify.Presentation
             _meshRenderer.GetPropertyBlock(_block);
             _block.SetColor(BaseColorProperty, selected ? tintColor : baseColor);
             _meshRenderer.SetPropertyBlock(_block);
+
+            // OUT-01: the outline is a pair of RenderObjects passes filtered on the SelectedSurface
+            // layer, so selection is a layer swap. SelectionController's mask carries that layer, so
+            // the surface stays tappable while it is selected.
+            if (OutlineLayer < 0) return;
+            if (selected)
+            {
+                if (gameObject.layer != OutlineLayer) _restoreLayer = gameObject.layer;
+                gameObject.layer = OutlineLayer;
+            }
+            else if (gameObject.layer == OutlineLayer)
+            {
+                gameObject.layer = _restoreLayer;
+            }
         }
 
         /// <summary>
@@ -127,6 +160,7 @@ namespace Formify.Presentation
             _meshFilter = GetComponent<MeshFilter>();
             _meshRenderer = GetComponent<MeshRenderer>();
             _meshCollider = GetComponent<MeshCollider>();
+            _restoreLayer = gameObject.layer;
             _block = new MaterialPropertyBlock();
         }
 
