@@ -472,10 +472,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Tint appears/disappears with selection; MaterialPropertyBlock only (no material instantiation)
-- [ ] PlayMode tests: tint toggles; after TryAddWindow a ray through the opening does NOT hit the wall collider; after remove it DOES
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 4 PlayMode tests pass
+- [x] Tint appears/disappears with selection; MaterialPropertyBlock only (no material instantiation)
+- [x] PlayMode tests: tint toggles; after TryAddWindow a ray through the opening does NOT hit the wall collider; after remove it DOES
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 4 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
