@@ -207,8 +207,8 @@ T27 → T29
 
 **Done when**:
 
-- [ ] 4 asmdefs compile; test assemblies visible to Test Runner
-- [ ] Test Runner runs green with zero tests in EditMode AND PlayMode
+- [x] 4 asmdefs compile; test assemblies visible to Test Runner
+- [x] Test Runner runs green with zero tests in EditMode AND PlayMode
 
 **Tests**: none
 **Gate**: build
