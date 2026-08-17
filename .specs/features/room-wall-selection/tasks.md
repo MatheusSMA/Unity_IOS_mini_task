@@ -310,10 +310,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] SEL AC1-AC3 + CLR AC1-AC2 behaviors implemented exactly (no event on no-op paths)
-- [ ] EditMode tests 1:1 to those ACs, incl. event payload (previous, current)
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 6 tests pass
+- [x] SEL AC1-AC3 + CLR AC1-AC2 behaviors implemented exactly (no event on no-op paths)
+- [x] EditMode tests 1:1 to those ACs, incl. event payload (previous, current)
+- [x] Gate passes: run_tests EditMode
+- [x] Test count: >= 6 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
