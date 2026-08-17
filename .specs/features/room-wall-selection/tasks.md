@@ -580,10 +580,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Panel lists 6 surfaces; selection change updates old + new rows in same frame; collapse/expand works
-- [ ] PlayMode tests: row states after Select/Clear; update-while-collapsed
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 4 PlayMode tests pass
+- [x] Panel lists 6 surfaces; selection change updates old + new rows in same frame; collapse/expand works
+- [x] PlayMode tests: row states after Select/Clear; update-while-collapsed
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 4 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
