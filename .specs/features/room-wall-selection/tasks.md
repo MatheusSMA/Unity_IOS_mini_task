@@ -633,10 +633,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Valid drag cuts a see-through hole; preview clamps live; all rejection paths remove preview without wall change
-- [ ] PlayMode tests: valid cut; tap-without-drag no window (EDGE-04); off-wall release clamps (EDGE-03); Clear cancels draw + exits mode + deselects (CLR AC3); mode-exit mid-drag cancels
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 6 PlayMode tests pass
+- [x] Valid drag cuts a see-through hole; preview clamps live; all rejection paths remove preview without wall change
+- [x] PlayMode tests: valid cut; tap-without-drag no window (EDGE-04); off-wall release clamps (EDGE-03); Clear cancels draw + exits mode + deselects (CLR AC3); mode-exit mid-drag cancels
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 6 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -660,10 +660,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Button visible for Wall+Orbit; hidden for none/Floor/Ceiling selected and in Ar/TopDown
-- [ ] PlayMode tests cover all 4 visibility cases
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 4 PlayMode tests pass
+- [x] Button visible for Wall+Orbit; hidden for none/Floor/Ceiling selected and in Ar/TopDown
+- [x] PlayMode tests cover all 4 visibility cases
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 4 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -687,10 +687,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Full loop: cut → tap opening (X appears) → X (popup) → cancel (stays) / confirm (wall solid again, ray hits wall)
-- [ ] PlayMode tests: WIN-04 AC1-AC5 + selection unchanged on opening tap
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 6 PlayMode tests pass
+- [x] Full loop: cut → tap opening (X appears) → X (popup) → cancel (stays) / confirm (wall solid again, ray hits wall)
+- [x] PlayMode tests: WIN-04 AC1-AC5 + selection unchanged on opening tap
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 6 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full

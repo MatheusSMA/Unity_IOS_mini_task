@@ -29,6 +29,7 @@ namespace Formify.Presentation
         private readonly List<SurfaceView> _views = new List<SurfaceView>();
 
         private Material _runtimeMaterial;
+        private Vector2 _dragPosition;
 
         public RoomModel Model { get; private set; }
 
@@ -45,6 +46,10 @@ namespace Formify.Presentation
         public SelectionController Selection { get; private set; }
 
         public SurfaceListPanel ListPanel { get; private set; }
+
+        public WindowDrawController WindowDraw { get; private set; }
+
+        public WindowViewFactory Windows { get; private set; }
 
         public Camera RoomCamera => roomCamera != null ? roomCamera : Camera.main;
 
@@ -85,7 +90,9 @@ namespace Formify.Presentation
             if (Input != null)
             {
                 Input.Tapped -= OnTapped;
+                Input.DragStart -= OnDragStart;
                 Input.DragDelta -= OnDragDelta;
+                Input.DragEnd -= OnDragEnd;
             }
 
             if (_runtimeMaterial != null) Destroy(_runtimeMaterial);
@@ -115,8 +122,24 @@ namespace Formify.Presentation
             GameObject clearGo = CreateButton(ListPanel.Canvas, "Clear", new Vector2(1f, 1f), new Vector2(-16f, -16f));
             clearGo.AddComponent<ClearButton>().Configure(Model, Modes);
 
+            GameObject windowModeGo = CreateButton(ListPanel.Canvas, "Window mode", new Vector2(1f, 1f), new Vector2(-16f, -80f));
+            WindowModeButton windowMode = windowModeGo.AddComponent<WindowModeButton>();
+            windowMode.Configure(Model, Modes);
+            windowModeGo.GetComponent<Button>().onClick.AddListener(windowMode.OnClick);
+
+            if (camera != null)
+            {
+                WindowDraw = gameObject.AddComponent<WindowDrawController>();
+                WindowDraw.Configure(Model, Modes, camera);
+            }
+
+            Windows = gameObject.AddComponent<WindowViewFactory>();
+            Windows.Configure(Model, Model.GetSurface, ListPanel.Canvas);
+
             Input.Tapped += OnTapped;
+            Input.DragStart += OnDragStart;
             Input.DragDelta += OnDragDelta;
+            Input.DragEnd += OnDragEnd;
         }
 
         private void OnTapped(Vector2 screenPosition)
@@ -124,10 +147,25 @@ namespace Formify.Presentation
             if (Selection != null) Selection.OnTap(screenPosition);
         }
 
+        private void OnDragStart(Vector2 screenPosition)
+        {
+            _dragPosition = screenPosition;
+            if (WindowDraw != null) WindowDraw.OnDragStart(screenPosition);
+        }
+
         /// <summary>Only Orbit drives the camera from drags: AR owns the pose and WindowDraw owns the gesture.</summary>
         private void OnDragDelta(Vector2 delta)
         {
-            if (OrbitCamera != null && Modes.Current == Mode.Orbit) OrbitCamera.OnDrag(delta);
+            // InputRouter reports deltas; WindowDrawController wants the live position, so keep the running sum.
+            _dragPosition += delta;
+
+            if (WindowDraw != null && Modes.Current == Mode.WindowDraw) WindowDraw.OnDragMove(_dragPosition);
+            else if (OrbitCamera != null && Modes.Current == Mode.Orbit) OrbitCamera.OnDrag(delta);
+        }
+
+        private void OnDragEnd(Vector2 screenPosition)
+        {
+            if (WindowDraw != null) WindowDraw.OnDragEnd(screenPosition);
         }
 
         /// <summary>
