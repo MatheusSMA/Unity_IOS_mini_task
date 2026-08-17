@@ -418,10 +418,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Every cell of the AD-013 matrix returns the documented legal/illegal result; illegal → false, no state change
-- [ ] EditMode tests: one test per matrix cell (12 non-diagonal cells) + WindowDraw entry requires Wall-selected predicate
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 13 tests pass
+- [x] Every cell of the AD-013 matrix returns the documented legal/illegal result; illegal → false, no state change
+- [x] EditMode tests: one test per matrix cell (12 non-diagonal cells) + WindowDraw entry requires Wall-selected predicate
+- [x] Gate passes: run_tests EditMode
+- [x] Test count: >= 13 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
