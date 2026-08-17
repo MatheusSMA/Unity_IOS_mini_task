@@ -741,10 +741,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] AR mode ignores touch-drag camera input; selection taps still work; position clamped
-- [ ] PlayMode tests: pose-driven rotation applied (driven transform stub); clamp inside room; exit handoff preserves orientation
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 3 PlayMode tests pass
+- [x] AR mode ignores touch-drag camera input; selection taps still work; position clamped
+- [x] PlayMode tests: pose-driven rotation applied (driven transform stub); clamp inside room; exit handoff preserves orientation
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 3 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -768,10 +768,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Toggle enters/exits AR mode; disabled when availability check fails
-- [ ] PlayMode tests: toggle enabled/disabled per availability; exit returns to Orbit
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 2 PlayMode tests pass
+- [x] Toggle enters/exits AR mode; disabled when availability check fails
+- [x] PlayMode tests: toggle enabled/disabled per availability; exit returns to Orbit
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 2 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
@@ -795,10 +795,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] 2D entry cancels state, disables ceiling renderer+collider, frames fit-to-room; pinch zooms within limits and does nothing in 3D; 3D restores everything
-- [ ] PlayMode tests: TOP AC2, AC3, AC5, AC7, AC9 (incl. tap not blocked by ceiling)
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 5 PlayMode tests pass
+- [x] 2D entry cancels state, disables ceiling renderer+collider, frames fit-to-room; pinch zooms within limits and does nothing in 3D; 3D restores everything
+- [x] PlayMode tests: TOP AC2, AC3, AC5, AC7, AC9 (incl. tap not blocked by ceiling)
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 5 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
