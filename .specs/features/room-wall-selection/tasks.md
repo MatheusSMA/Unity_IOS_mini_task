@@ -391,10 +391,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] 4-vertex footprint yields 6 surfaces; 3- and 5-vertex footprints yield N+2; kinds and names correct
-- [ ] EditMode tests cover N=3, N=4, N=5 and naming
-- [ ] Gate passes: run_tests EditMode
-- [ ] Test count: >= 4 tests pass
+- [x] 4-vertex footprint yields 6 surfaces; 3- and 5-vertex footprints yield N+2; kinds and names correct
+- [x] EditMode tests cover N=3, N=4, N=5 and naming
+- [x] Gate passes: run_tests EditMode
+- [x] Test count: >= 4 tests pass
 
 **Tests**: EditMode unit
 **Gate**: quick
