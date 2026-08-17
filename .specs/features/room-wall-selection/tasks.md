@@ -182,8 +182,8 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Scene opens in Editor with zero console errors
-- [ ] Scene 0 in Build Settings
+- [x] Scene opens in Editor with zero console errors
+- [x] Scene 0 in Build Settings
 
 **Tests**: none
 **Gate**: build
