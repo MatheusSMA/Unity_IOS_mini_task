@@ -822,10 +822,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Floor tap near wall selects nearest wall in 2D; same tap in 3D selects floor; floor tap far from walls selects floor in 2D
-- [ ] PlayMode tests cover those 3 cases
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 3 PlayMode tests pass
+- [x] Floor tap near wall selects nearest wall in 2D; same tap in 3D selects floor; floor tap far from walls selects floor in 2D
+- [x] PlayMode tests cover those 3 cases
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 3 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
