@@ -155,10 +155,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] URP asset assigned in Graphics and all Quality tiers
-- [ ] Input handling set to Input System (new)
-- [ ] XR Plug-in Management: ARKit enabled for iOS, XR Simulation for Editor
-- [ ] No console errors
+- [x] URP asset assigned in Graphics and all Quality tiers
+- [x] Input handling set to Input System (new)
+- [x] XR Plug-in Management: ARKit enabled for iOS, XR Simulation for Editor
+- [x] No console errors
 
 **Tests**: none
 **Gate**: build
