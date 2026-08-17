@@ -46,6 +46,68 @@ Open questions raised while executing `.specs/features/room-wall-selection/tasks
 **Assumption applied**: no new assets created. The existing pair is used as-is; `Mobile_Renderer` is the renderer that will host the T24 outline features, since iOS is the shipping target.
 **Answer**:
 
+## C-08 — RoomBootstrap became the composition root
+
+**Raised by**: T20 (and extended in T23, T29)
+**Context**: The task list has no scene-assembly task beyond T16. Each controller and UI class is authored with a
+`Configure(...)` entry point, but nothing in the task list creates or wires them at runtime, so the app would
+show the room and nothing else.
+**Assumption applied**: `RoomBootstrap` composes the whole runtime graph in `Awake` (input router, orbit camera,
+selection, list panel, Clear, window mode button, window draw, window view factory, AR controller and toggle,
+top-down controller, 2D/3D buttons). `Main.unity` therefore holds a single `Room` object. A serialized
+`buildRuntimeComposition` flag switches the composition off for tests that want the bare room.
+**Answer**:
+
+## C-09 — Pinch is read by TopDownController, not by InputRouter
+
+**Raised by**: T27
+**Context**: TOP-02 AC9 needs a two-finger pinch, but InputRouter deliberately tracks only the primary touch
+(EDGE-01), so a second finger never reaches a controller through it.
+**Assumption applied**: `TopDownController` reads the two-finger distance itself in `Update` while the plan is
+active and converts it into the fit units `ApplyPinch` expects (a spread of one screen height is one fit unit).
+InputRouter is unchanged.
+**Answer**:
+
+## C-10 — AR session rig created at runtime
+
+**Raised by**: T25
+**Context**: T25 says the scene gains an ARSession and an XROrigin, which was a Unity MCP step. Without them
+nothing produces a device pose and AR mode is inert, even though the controller and its tests are correct.
+**Assumption applied**: `RoomBootstrap` creates the AR rig (ARSession + ARInputManager + XROrigin with a
+non-rendering tracking camera driven by TrackedPoseDriver) the first time `ArSessionStartRequested` fires, and
+disables it on `ArSessionEndRequested`. The room camera keeps rendering the synthetic room; AR only supplies the
+pose. This path needs a human check in the Editor with XR Simulation: the automated tests inject a pose instead.
+**Answer**:
+
+## C-11 — Window mode has no visible exit affordance
+
+**Raised by**: T22
+**Context**: AD-015 hides the window mode button whenever the mode is not Orbit, so the button disappears the
+moment window mode is entered. The documented way out is the Clear button (CLR-01 AC3), which also clears the
+selection.
+**Assumption applied**: implemented exactly as specified. If the intended UX is a visible toggle that stays on
+screen while drawing, AD-015 needs revisiting.
+**Answer**:
+
+## C-12 — Edge margin is configured in two places
+
+**Raised by**: T21
+**Context**: `WindowPlacementValidator.EdgeMargin` (0.1 m) is the rule, but `WindowDrawController` needs the same
+number to clamp the live preview, and the validator instance is private to `RoomModel`.
+**Assumption applied**: the controller carries its own serialized `edgeMargin` that mirrors the validator's
+value; the validator still has the final word on release. Tuning one without the other only makes the preview
+disagree with the accepted rectangle, never accepts an invalid window.
+**Answer**:
+
+## C-13 — Task execution order deviated inside Phase 3
+
+**Raised by**: T14
+**Context**: The documented order is T13 → T14 → T15 … ; T14 (InputRouter) was authored in parallel and landed
+after T15-T19.
+**Assumption applied**: committed in dependency order rather than numeric order. T14 depends only on T13, and no
+task that depends on T14 (T17, T18) was gated before it landed.
+**Answer**:
+
 ## C-06 — Unity template packages left in the manifest
 
 **Raised by**: T01

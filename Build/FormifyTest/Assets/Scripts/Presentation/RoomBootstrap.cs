@@ -1,8 +1,12 @@
 using System.Collections.Generic;
 using Formify.Domain;
 using TMPro;
+using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
+using UnityEngine.XR.ARFoundation;
 
 namespace Formify.Presentation
 {
@@ -30,6 +34,7 @@ namespace Formify.Presentation
 
         private Material _runtimeMaterial;
         private Vector2 _dragPosition;
+        private GameObject _arSessionRoot;
 
         public RoomModel Model { get; private set; }
 
@@ -99,6 +104,12 @@ namespace Formify.Presentation
                 Input.DragEnd -= OnDragEnd;
             }
 
+            if (Modes != null)
+            {
+                Modes.ArSessionStartRequested -= StartArSession;
+                Modes.ArSessionEndRequested -= StopArSession;
+            }
+
             if (_runtimeMaterial != null) Destroy(_runtimeMaterial);
         }
 
@@ -145,6 +156,8 @@ namespace Formify.Presentation
                 ArCamera = gameObject.AddComponent<ArPoseCameraController>();
                 ArCamera.Configure(Modes, OrbitCamera, camera.transform);
                 ArCamera.ConfigureRoom(RoomBounds);
+                Modes.ArSessionStartRequested += StartArSession;
+                Modes.ArSessionEndRequested += StopArSession;
 
                 TopDown = gameObject.AddComponent<TopDownController>();
                 TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, RoomBounds);
@@ -166,6 +179,61 @@ namespace Formify.Presentation
         private void OnTapped(Vector2 screenPosition)
         {
             if (Selection != null) Selection.OnTap(screenPosition);
+        }
+
+        /// <summary>
+        /// AR-01: without a session and an XROrigin nothing produces a device pose, so AR mode would be inert.
+        /// The rig is created on first entry and only enabled while the mode is Ar; the tracking camera does not
+        /// render (the synthetic room stays the world, AR only drives the pose).
+        /// </summary>
+        private void StartArSession()
+        {
+            if (_arSessionRoot == null) _arSessionRoot = CreateArRig();
+            _arSessionRoot.SetActive(true);
+        }
+
+        private void StopArSession()
+        {
+            if (_arSessionRoot != null) _arSessionRoot.SetActive(false);
+        }
+
+        private GameObject CreateArRig()
+        {
+            var root = new GameObject("AR Rig");
+            root.transform.SetParent(transform, false);
+            root.SetActive(false);
+
+            var session = new GameObject("AR Session", typeof(ARSession), typeof(ARInputManager));
+            session.transform.SetParent(root.transform, false);
+
+            var originGo = new GameObject("XR Origin");
+            originGo.transform.SetParent(root.transform, false);
+            var origin = originGo.AddComponent<XROrigin>();
+
+            var offset = new GameObject("Camera Offset");
+            offset.transform.SetParent(originGo.transform, false);
+
+            var trackingCameraGo = new GameObject("AR Tracking Camera", typeof(Camera));
+            trackingCameraGo.transform.SetParent(offset.transform, false);
+            var trackingCamera = trackingCameraGo.GetComponent<Camera>();
+            trackingCamera.enabled = false;
+
+            var driver = trackingCameraGo.AddComponent<TrackedPoseDriver>();
+            driver.positionInput = new InputActionProperty(PoseAction("AR Position", "Vector3",
+                "<HandheldARInputDevice>/devicePosition", "<XRHMD>/centerEyePosition"));
+            driver.rotationInput = new InputActionProperty(PoseAction("AR Rotation", "Quaternion",
+                "<HandheldARInputDevice>/deviceRotation", "<XRHMD>/centerEyeRotation"));
+
+            origin.CameraFloorOffsetObject = offset;
+            origin.Camera = trackingCamera;
+            return root;
+        }
+
+        private static InputAction PoseAction(string name, string controlType, string primaryBinding, string fallbackBinding)
+        {
+            var action = new InputAction(name, InputActionType.Value, primaryBinding, expectedControlType: controlType);
+            action.AddBinding(fallbackBinding);
+            return action;
         }
 
         private void OnDragStart(Vector2 screenPosition)
