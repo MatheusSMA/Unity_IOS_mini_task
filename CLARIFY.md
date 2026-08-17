@@ -108,6 +108,15 @@ after T15-T19.
 task that depends on T14 (T17, T18) was gated before it landed.
 **Answer**:
 
+## C-14 — README is a deliverable with no task
+
+**Raised by**: after T29
+**Context**: `docs/ideia.md` lists a readme explaining architecture, AI method, organisation, adjustments and
+business rules as a deliverable, but the 29 tasks never cover it.
+**Assumption applied**: written as `README.md` at the repository root after the last task and committed
+separately, since it documents the finished system rather than any single task.
+**Answer**:
+
 ## C-06 — Unity template packages left in the manifest
 
 **Raised by**: T01
