@@ -258,8 +258,8 @@ T27 → T29
 
 **Done when**:
 
-- [ ] All 8 types compile in Domain assembly with no UnityEngine dependency beyond Vector types
-- [ ] Thickness default 0.15f on SurfaceDefinition
+- [x] All 8 types compile in Domain assembly with no UnityEngine dependency beyond Vector types
+- [x] Thickness default 0.15f on SurfaceDefinition
 
 **Tests**: none
 **Gate**: build
