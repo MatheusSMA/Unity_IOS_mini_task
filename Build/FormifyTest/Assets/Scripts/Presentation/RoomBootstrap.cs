@@ -51,6 +51,10 @@ namespace Formify.Presentation
 
         public WindowViewFactory Windows { get; private set; }
 
+        public ArPoseCameraController ArCamera { get; private set; }
+
+        public TopDownController TopDown { get; private set; }
+
         public Camera RoomCamera => roomCamera != null ? roomCamera : Camera.main;
 
         /// <summary>The footprint is generated centred on the origin, so its centre at floor level is the origin.</summary>
@@ -135,6 +139,23 @@ namespace Formify.Presentation
 
             Windows = gameObject.AddComponent<WindowViewFactory>();
             Windows.Configure(Model, Model.GetSurface, ListPanel.Canvas);
+
+            if (camera != null)
+            {
+                ArCamera = gameObject.AddComponent<ArPoseCameraController>();
+                ArCamera.Configure(Modes, OrbitCamera, camera.transform);
+                ArCamera.ConfigureRoom(RoomBounds);
+
+                TopDown = gameObject.AddComponent<TopDownController>();
+                TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, RoomBounds);
+            }
+
+            GameObject arGo = CreateButton(ListPanel.Canvas, "AR", new Vector2(1f, 1f), new Vector2(-16f, -144f));
+            ArToggleButton arToggle = arGo.AddComponent<ArToggleButton>();
+            arToggle.Configure(Modes, ArCamera);
+            arGo.GetComponent<Button>().onClick.AddListener(arToggle.OnClick);
+
+            gameObject.AddComponent<ViewSwitchButtons>().Configure(Modes, ListPanel.Canvas);
 
             Input.Tapped += OnTapped;
             Input.DragStart += OnDragStart;

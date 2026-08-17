@@ -849,10 +849,10 @@ T27 → T29
 
 **Done when**:
 
-- [ ] Buttons switch views; in 2D the list updates on plan selection and Clear works
-- [ ] PlayMode tests: switch both ways; list+Clear functional in 2D
-- [ ] Gate passes: run_tests EditMode + PlayMode
-- [ ] Test count: >= 3 PlayMode tests pass
+- [x] Buttons switch views; in 2D the list updates on plan selection and Clear works
+- [x] PlayMode tests: switch both ways; list+Clear functional in 2D
+- [x] Gate passes: run_tests EditMode + PlayMode
+- [x] Test count: >= 3 PlayMode tests pass
 
 **Tests**: PlayMode
 **Gate**: full
