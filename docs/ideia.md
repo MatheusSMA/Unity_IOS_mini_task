@@ -1,15 +1,19 @@
-# Ideia do Projeto
+# Project Idea
 
-App iOS feito em Unity que mostra um cômodo com paredes (reais via LiDAR/AR ou um cômodo 3D sintético) e permite ao usuário selecionar paredes tocando nelas.
+Unity iOS app that displays a room with walls (real ones via LiDAR/AR, or a synthetic 3D room) and lets the user select walls by tapping them.
 
-## Funcionalidades
+## Features
 
-- Cômodo com pelo menos 4 paredes visíveis, pelas quais o usuário pode se mover.
-- Toque em uma parede alterna entre selecionada / não selecionada, com feedback visual claro.
-- Lista na tela mostrando todas as paredes e seu estado de seleção, atualizada em tempo real.
-- Opcional: botão para limpar a seleção.
+- Room with at least 4 visible walls; the user moves the camera to view the other walls.
+- Touch drag on the phone screen for orbital camera movement.
+- Tapping a wall toggles it between selected / not selected, with clear visual feedback — possibly an outline on the wall.
+- On-screen list showing every wall and its selection state, updated in real time.
+- Optional: a button to clear the selection, or tapping outside also clears it.
+- Hole for windows, by drawing a rectangle on the wall.
+- Extra: iPhone AR as a replacement for touch movement, using AR to look around the room.
+- Extra: 2D top-down view of the project.
 
-## Entregáveis
+## Deliverables
 
-- Projeto Unity.
-- Vídeo curto (30–60s) demonstrando navegação, seleção de paredes e a lista atualizando.
+- Unity project.
+- Readme explaining the chosen architecture, AI methods applied (spec-driven development), organization, adjustments and business rules.
