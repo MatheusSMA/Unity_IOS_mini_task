@@ -4,7 +4,6 @@ using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
-using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 
 namespace Formify.Presentation
@@ -12,17 +11,12 @@ namespace Formify.Presentation
     /// <summary>
     /// Builds the synthetic room on Awake (ROOM-01) and owns the references the controllers share —
     /// plain serialized fields and properties, no DI framework (AD-002).
+    /// The room is generated; the HUD is not. <see cref="Compose"/> binds the model and the modes to the
+    /// <see cref="HudRoot"/> the scene already holds (AD-025), and builds one only when the scene has none.
     /// </summary>
     public class RoomBootstrap : MonoBehaviour
     {
         private const string LitShaderName = "Universal Render Pipeline/Lit";
-
-        // The art kit's RightRail block, in its reference pixels (HUD-01 AC2).
-        private const float RailWidth = 264f;
-        private const float RailInset = 14f;
-        private static readonly Vector2 RailButtonSize = new Vector2(212f, 46f);
-        private static readonly Vector2 ReadoutPosition = new Vector2(8f, -404f);
-        private static readonly Vector2 ReadoutSize = new Vector2(250f, 92f);
 
         [SerializeField] private Vector2 roomSize = new Vector2(6f, 4f);
         [SerializeField] private float height = 2.8f;
@@ -32,6 +26,9 @@ namespace Formify.Presentation
         [SerializeField] private Material surfaceMaterial;
 
         [SerializeField] private Camera roomCamera;
+
+        /// <summary>The HUD authored into the scene (AD-025). Found in the scene, then built, when left empty.</summary>
+        [SerializeField] private HudRoot hud;
 
         /// <summary>Off in tests that want the bare room without controllers or UI.</summary>
         [SerializeField] private bool buildRuntimeComposition = true;
@@ -56,16 +53,19 @@ namespace Formify.Presentation
 
         public SelectionController Selection { get; private set; }
 
-        public SurfaceListPanel ListPanel { get; private set; }
+        /// <summary>The HUD this bootstrap drives. Null until <see cref="Compose"/> has run.</summary>
+        public HudRoot Hud { get; private set; }
+
+        public SurfaceListPanel ListPanel => Hud != null ? Hud.ListPanel : null;
 
         /// <summary>The art kit's right-hand action rail. Null until <see cref="Compose"/> has run.</summary>
-        public RectTransform Rail { get; private set; }
+        public RectTransform Rail => Hud != null ? Hud.Rail : null;
 
-        public WindowModeButton WindowMode { get; private set; }
+        public WindowModeButton WindowMode => Hud != null ? Hud.WindowMode : null;
 
-        public HudReadout Readout { get; private set; }
+        public HudReadout Readout => Hud != null ? Hud.Readout : null;
 
-        public HudHintPill HintPill { get; private set; }
+        public HudHintPill HintPill => Hud != null ? Hud.HintPill : null;
 
         public WindowDrawController WindowDraw { get; private set; }
 
@@ -85,15 +85,14 @@ namespace Formify.Presentation
 
         private void Awake()
         {
-            RoomDefinition room = RoomBuilder.Build(Footprint(), height, thickness);
-            Model = new RoomModel(room.surfaces);
-            Modes = new ModeManager(IsWallSelected);
+            EnsureModel();
 
             Material material = ResolveMaterial();
 
-            for (int i = 0; i < room.surfaces.Count; i++)
+            IReadOnlyList<SurfaceDefinition> surfaces = Model.Surfaces;
+            for (int i = 0; i < surfaces.Count; i++)
             {
-                SurfaceDefinition surface = room.surfaces[i];
+                SurfaceDefinition surface = surfaces[i];
 
                 GameObject go = new GameObject(surface.name, typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider));
                 go.transform.SetParent(transform, false);
@@ -129,11 +128,31 @@ namespace Formify.Presentation
         }
 
         /// <summary>
-        /// Creates and wires the runtime object graph: one input doorway, the orbit camera, the tap selection
-        /// and the UI. Tests that only need the room switch it off through <see cref="buildRuntimeComposition"/>.
+        /// Model and modes are plain C# and need no GameObject, so building them apart from the meshes lets the
+        /// editor bake call <see cref="Compose"/> for the HUD on its own.
         /// </summary>
-        private void Compose()
+        private void EnsureModel()
         {
+            if (Model != null) return;
+
+            RoomDefinition room = RoomBuilder.Build(Footprint(), height, thickness);
+            Model = new RoomModel(room.surfaces);
+            Modes = new ModeManager(IsWallSelected);
+        }
+
+        /// <summary>
+        /// Creates and wires the runtime object graph: one input doorway, the orbit camera, the tap selection
+        /// and the HUD's bindings. Tests that only need the room switch it off through
+        /// <see cref="buildRuntimeComposition"/>.
+        /// No view is built here — the HUD comes from the scene (AD-025) and this only hands it the model, the
+        /// modes and the handlers. Public because the editor bake (HudSceneBaker) runs exactly this to author
+        /// that scene copy in the first place, so what is baked and what runs are one wiring.
+        /// </summary>
+        public void Compose()
+        {
+            EnsureModel();
+
+            Hud = ResolveHud();
             Input = gameObject.AddComponent<InputRouter>();
 
             Camera camera = RoomCamera;
@@ -146,29 +165,22 @@ namespace Formify.Presentation
                 Selection.Configure(Model, Modes, camera);
             }
 
-            ListPanel = gameObject.AddComponent<SurfaceListPanel>();
             // AD-015: while a window is being drawn the target wall is locked, and that has to hold for a tap on
             // the list exactly as it holds for a tap on the wall itself.
-            ListPanel.Configure(Model, () => Modes == null || Modes.Current != Mode.WindowDraw);
+            Hud.ListPanel.Configure(Model, () => Modes == null || Modes.Current != Mode.WindowDraw);
 
-            Rail = BuildRightRail(ListPanel.Canvas);
-
-            HudButton windowModeHud = RailButton("BtnWindowMode", "icon_window", "Window mode", -12f, true);
-            WindowModeButton windowMode = windowModeHud.gameObject.AddComponent<WindowModeButton>();
+            HudButton windowModeHud = Hud.WindowHudButton;
+            WindowModeButton windowMode = Hud.WindowMode;
             windowMode.StateDot = windowModeHud.Dot;
             windowMode.Configure(Model, Modes);
             // The button paints itself from its own state; only the click still has to be wired by hand, because
-            // WindowModeButton (unlike Clear and AR) does not wire its own onClick in Configure.
+            // WindowModeButton (unlike Clear and AR) does not wire its own onClick in Configure. Removed first:
+            // a scene HUD is bound again on every play, and the listener would stack.
             windowModeHud.ActiveSource = () => windowMode.IsActive;
+            windowModeHud.Button.onClick.RemoveListener(windowMode.OnClick);
             windowModeHud.Button.onClick.AddListener(windowMode.OnClick);
-            WindowMode = windowMode;
 
-            HudButton clearHud = RailButton("BtnClear", "icon_trash", "Clear", -68f, false);
-            clearHud.UseNeutralPalette = true;
-            clearHud.Apply();
-            clearHud.gameObject.AddComponent<ClearButton>().Configure(Model, Modes);
-
-            RailDivider(-124f);
+            Hud.Clear.Configure(Model, Modes);
 
             if (camera != null)
             {
@@ -177,7 +189,7 @@ namespace Formify.Presentation
             }
 
             Windows = gameObject.AddComponent<WindowViewFactory>();
-            Windows.Configure(Model, Model.GetSurface, ListPanel.Canvas);
+            Windows.Configure(Model, Model.GetSurface, Hud.Canvas);
 
             if (camera != null)
             {
@@ -191,27 +203,32 @@ namespace Formify.Presentation
                 TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, RoomBounds);
             }
 
-            HudButton arHud = RailButton("BtnAR", "icon_ar", "View in AR", -132f, false);
-            // Configure wires its own onClick; adding it here too would fire OnClick twice and undo the toggle.
-            ArToggleButton arToggle = arHud.gameObject.AddComponent<ArToggleButton>();
-            arToggle.Configure(Modes, ArCamera);
-            arHud.ActiveSource = () => Modes != null && Modes.Current == Mode.Ar;
+            // ArToggleButton.Configure wires its own onClick; wiring it here too would fire OnClick twice and
+            // undo the toggle.
+            Hud.ArToggle.Configure(Modes, ArCamera);
+            Hud.ArHudButton.ActiveSource = () => Modes != null && Modes.Current == Mode.Ar;
 
-            gameObject.AddComponent<ViewSwitchButtons>().Configure(Modes, ListPanel.Canvas);
+            Hud.ViewSwitch.Configure(Modes, Hud.Canvas);
 
-            Readout = HudReadout.Create(ListPanel.Canvas.transform, ReadoutPosition, ReadoutSize);
-            Readout.Configure(Model);
-
-            HintPill = HudHintPill.Create(ListPanel.Canvas.transform);
-            HintPill.Configure(Modes);
-
-            // Last, so it covers the HUD. Raycast Target is off inside AddScanlines (HUD-01 AC4).
-            HudTheme.AddScanlines(ListPanel.Canvas);
+            Hud.Readout.Configure(Model);
+            Hud.HintPill.Configure(Modes);
 
             Input.Tapped += OnTapped;
             Input.DragStart += OnDragStart;
             Input.DragDelta += OnDragDelta;
             Input.DragEnd += OnDragEnd;
+        }
+
+        /// <summary>
+        /// The HUD to drive (AD-025): the one wired in the inspector, else the one baked into the open scene,
+        /// else a fresh build for a scene that holds none — a bare test scene, or the bake itself.
+        /// </summary>
+        private HudRoot ResolveHud()
+        {
+            if (hud != null) return hud;
+
+            HudRoot inScene = FindFirstObjectByType<HudRoot>(FindObjectsInactive.Include);
+            return inScene != null ? inScene : HudRoot.Build(transform);
         }
 
         private void OnTapped(Vector2 screenPosition)
@@ -293,44 +310,6 @@ namespace Formify.Presentation
         private void OnDragEnd(Vector2 screenPosition)
         {
             if (WindowDraw != null) WindowDraw.OnDragEnd(screenPosition);
-        }
-
-        /// <summary>
-        /// The art kit's `RightRail` (HUD-01 AC2): a near-opaque column down the right edge holding the three
-        /// action buttons. Unlike the decoration on the canvas, the rail fill IS a raycast target — it is a
-        /// panel, so a tap on it must not fall through into the room behind it (EDGE-02).
-        /// </summary>
-        private RectTransform BuildRightRail(Canvas canvas)
-        {
-            RectTransform rail = HudTheme.NewUi("RightRail", canvas.transform);
-            rail.anchorMin = new Vector2(1f, 0f);
-            rail.anchorMax = new Vector2(1f, 1f);
-            rail.pivot = new Vector2(1f, 0.5f);
-            rail.offsetMin = new Vector2(-RailWidth, 0f);
-            rail.offsetMax = Vector2.zero;
-
-            HudTheme.AddImage(rail, "RailFill", "panel_fill_9s", HudTheme.RailFill, Image.Type.Sliced,
-                raycastTarget: true);
-            return rail;
-        }
-
-        /// <summary>One 212 x 46 rail button, `top` px below the rail's top edge and inset 14 px from its right.</summary>
-        private HudButton RailButton(string objectName, string iconSprite, string label, float top, bool withStateDot)
-        {
-            HudButton button = HudButton.Create(Rail, objectName, iconSprite, label, RailButtonSize, withStateDot);
-            ((RectTransform)button.transform).anchoredPosition = new Vector2(-RailInset, top);
-            return button;
-        }
-
-        private void RailDivider(float top)
-        {
-            RectTransform band = HudTheme.NewUi("Divider", Rail);
-            band.anchorMin = new Vector2(1f, 1f);
-            band.anchorMax = new Vector2(1f, 1f);
-            band.pivot = new Vector2(1f, 1f);
-            band.anchoredPosition = new Vector2(-RailInset, top);
-            band.sizeDelta = new Vector2(RailButtonSize.x, 1f);
-            HudTheme.AddDivider(band);
         }
 
         /// <summary>Footprint corners in the world XZ plane, centred on the origin.</summary>
