@@ -411,3 +411,43 @@ failed and exposed defect 2 below, which is also proof the raycast is not inert.
 - **Every screenshot was taken at the Editor Game view's 1557x1222.** That is not the landscape shape AD-020
   designs for, so proportion and overflow on a real device are unverified.
 - **This section is author-verified.** Sections 1-8 had author != verifier; this one did not.
+
+---
+
+## 10 · Phase 8 verification (LIST-03, TOP-01, SEL-03, ROOM-01 — 2026-08-18)
+
+**The suites were not run.** The owner asked for the test runner to be held for the whole of Phase 8, so this
+section records what asserts each new rule, not a pass. Everything below is written and compiles; nothing below
+has been executed. What *was* verified: a forced Unity refresh + compile with a clean console after every task
+(T34, T35, T36, T37), the editor bake re-run against `Main.unity`, and the scene's `roomSize` read back through
+Unity after the change.
+
+| Rule | Where it is satisfied | Where it is asserted |
+| ---- | --------------------- | -------------------- |
+| LIST-03 AC5-AC8 | `SurfaceListPanel` window rows, `SurfaceRow`'s indented variant, `RoomModel.SelectWindow` | see the LIST-03 block in section 3 |
+| WIN-01 AC1 (auto-exit, AD-027) | `WindowDrawController.OnDragEnd` returns to Orbit only on a successful `TryAddWindow` | `WindowDrawControllerTests.Placing_a_window_leaves_window_mode`, `.A_rejected_drag_stays_in_window_mode` |
+| WIN-01 AC14 (drag over a window orbits) | `RoomBootstrap.OnDragDelta` gates on `WindowDraw.IsDrawing`, not on the mode | `RoomBootstrapDragRoutingTests.InWindowDraw_ADragStartingOverAWindowTurnsTheCameraInstead`, with `.InWindowDraw_TheDragCutsAWindowAndLeavesTheCameraAlone` and `.InAr_TheDragGoesNowhereBecauseArOwnsThePose` unchanged and still holding |
+| SEL-03 AC7 rewritten (AD-028) | `WindowView.OnTapped` calls `RoomModel.SelectWindow`; the delete affordance and the accent border follow `WindowSelectionChanged` | `SelectionControllerTests.Tapping_a_window_selects_it_and_clears_the_surface_selection`, `.Tapping_a_wall_after_a_window_clears_the_window_selection`, `WindowViewTests.OnTapped_SelectsTheWindowAndTheDeleteAffordanceFollows`, `.MovingTheSelectionElsewhere_TakesTheDeleteAffordanceWithIt`, `.SelectedWindow_IsOutlinedOverTheOpeningInTheAccent` |
+| TOP-01 AC7 (pull-back) | `TopDownController.PlanOrthographicSize` = fit x `planZoomOut` (1.25), clamped into the pinch limits | `TopDownControllerTests.B5_ThePlanOpensFurtherBackThanTheBareFit` |
+| TOP-01 AC10 (animated switch) | `BeginTransition` interpolates to the pose the snap produces, `InputLocked` on the orbit rig, pinch early-return | `B5_Entering2D_FliesInsteadOfSnapping_WhileTheModeFlipsAtOnce`, `B5_TheFlightLandsExactlyOnTheOldSnapPose`, `B5_SwitchingBackMidFlight_RetargetsFromMidAir`, `B5_ReEnteringMidExitFlight_StillRestoresTheReal3DPose`, `B5_PinchDuringTheFlight_ChangesNothing`, `B5_DragDuringTheFlight_DoesNotTearThePose`, `OrbitCameraControllerTests.InputLocked_drops_drags_and_lets_them_through_again_when_cleared` |
+| ROOM-01 room size 9 x 5 | `RoomBootstrap.roomSize` default and the serialized value on the scene's `Room` | `RoomBootstrapTests` (bounds), `RoomBootstrapDragRoutingTests` (Wall 3's new plane) |
+
+### Not asserted by anything
+
+- **The world dressing** (black sky, grey ground plane, Flat ambient) is scene data with no behavioural rule
+  behind it. Nothing tests it and nothing should; it is a UAT look-check. The one thing that *could* break
+  behaviour — a collider under the room stealing taps — is prevented by the plane carrying no collider, and that
+  is worth a glance in review rather than a test.
+- **Appearance of the fold indicator, the window rows and the selected-window border.** Same reason as the rest of
+  HUD-01: appearance is UAT.
+
+### What a reviewer should be most suspicious of
+
+1. **The animated switch landing pose.** Three existing framing tests were changed to step frames to the landing
+   instead of asserting on the next frame. That is the correct change, but it is also exactly how an animation
+   that lands somewhere slightly wrong would hide - `B5_TheFlightLandsExactlyOnTheOldSnapPose` is the sensor
+   holding that down, and it is the one to read first.
+2. **`IsDrawing` as the drag gate.** It is narrower than the mode check it replaced, which is why it is safe - but
+   only while every exit from window mode really does cancel the draw (`DrawCancelRequested`, CLR-01 AC3).
+3. **The window row ordinals.** They are recomputed from the model on every add and remove, so a stale label
+   means the model and the list disagree about order, not that a label was missed.

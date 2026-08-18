@@ -497,7 +497,7 @@ painted the HUD from the kit under AD-020. Follow-on decisions from the paint it
 
 ### T16: Implement RoomBootstrap scene wiring + PlayMode test
 
-**What**: Scene bootstrap that builds the room (6 m x 4 m x 2.8 m defaults), instantiates SurfaceViews, wires RoomModel/controllers; added to Main scene.
+**What**: Scene bootstrap that builds the room (6 m x 4 m x 2.8 m defaults at the time; 9 x 5 since B6), instantiates SurfaceViews, wires RoomModel/controllers; added to Main scene.
 **Where**: `Assets/Scripts/Presentation/RoomBootstrap.cs`
 **Depends on**: T12, T15
 **Reuses**: T12 RoomBuilder, T15 SurfaceView
@@ -1029,6 +1029,74 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 
 ---
 
+### T35: Fly the camera between 2D and 3D (B5)
+
+**Done** - landed 2026-08-18, in parallel with T36 and T37.
+
+**What**: The plan view opens further back and the switch animates both ways (TOP-01 AC7, AC10). `PlanOrthographicSize` is the bare fit scaled by a serialized `planZoomOut` (1.25) and clamped into the same limits the pinch obeys, so the opening size sits honestly inside them. `BeginTransition` reads the current pose, runs the real snap, reads the result back as the target and rewinds - so the flight lands on exactly the pose the code snapped to before, and a switch arriving mid-flight retargets from mid-air instead of restarting. The flight is flown in the 3D projection in both directions, because an orthographic camera at eye height inside the room renders nothing readable. Camera input is dropped while it flies: pinch early-returns and `OrbitCameraController` gained an `InputLocked` flag, needed because on the way out the mode is already Orbit and `RoomBootstrap` would route drags into a camera still in the air.
+**Where**: `Assets/Scripts/Presentation/TopDownController.cs`, `OrbitCameraController.cs`, `Assets/Tests/PlayMode/TopDownControllerTests.cs`, `OrbitCameraControllerTests.cs`
+**Depends on**: T27, T29
+**Requirement**: TOP-01 (AC7, AC10)
+
+**Done when**:
+
+- [x] The plan opens at 1.25x the bare fit, inside the pinch clamps
+- [x] Both directions interpolate over 0.35 s with `SmoothStep`, driven off `Time.deltaTime` in `LateUpdate`
+- [x] The mode change stays instant - ceiling, selection cancel and toggle highlight fire on `ModeChanged` as before
+- [x] The flight lands exactly on the old snap pose, and a mid-flight switch retargets rather than snapping
+- [x] Pinch and orbit drags do nothing while it flies
+- [ ] Gate: suites not run - the owner asked for the runner to be held
+
+**Tests**: PlayMode - 8 new cases (`B5_*` in `TopDownControllerTests`, `InputLocked_*` in `OrbitCameraControllerTests`); 3 existing cases now step frames to the landing instead of asserting on the next frame.
+
+**Commit**: `[feat] fly the camera between 2D and 3D`
+
+---
+
+### T36: Widen the room to 9 x 5 m (B6)
+
+**Done** - landed 2026-08-18.
+
+**What**: The room was 6 x 4 m; the owner asked for bigger and more rectangular. 9 x 5 (1.8:1) in both the `RoomBootstrap` default and the serialized value on the scene's `Room` object - the serialized one is what runs, so the default alone would have changed nothing. Height and thickness unchanged.
+**Where**: `Assets/Scripts/Presentation/RoomBootstrap.cs`, `Assets/Scenes/Main.unity`, `Assets/Tests/PlayMode/RoomBootstrapTests.cs`, `RoomBootstrapDragRoutingTests.cs`, `Assets/Tests/EditMode/RoomBuilderTests.cs` (comment)
+**Requirement**: ROOM-01 (assumption change, spec Assumptions table)
+
+**Done when**:
+
+- [x] `roomSize` is 9 x 5 in the code default and in the scene
+- [x] The two fixtures that assert the app's own room moved with it - Wall 3 changed plane, so the drag-routing fixture's world points and expected wall-local rect moved
+- [x] Nothing camera-side needed changing: the orbit rig clamps off `RoomBounds`, the plan fits off the same extents, and window size limits are wall-local
+- [ ] Gate: suites not run - the owner asked for the runner to be held
+
+**Commit**: `[feat] widen the room to 9 x 5 metres`
+
+---
+
+### T37: Select a window, orbit from a drag over one, and dress the world (B2, B4)
+
+**Done** - landed 2026-08-18. Brought AD-028 with it.
+
+**What**: Three things.
+*B2* - a tap on a window selects it (`WindowView.OnTapped` -> `RoomModel.SelectWindow`), which clears the surface selection under AD-026, and the delete affordance follows the *selected* window instead of the tapped one. That is what the owner asked for from the list side: picking a window row shows its X exactly as tapping the opening does. The selected opening is outlined with the kit's `window_border_9s` in the accent, a screen-space rect over the projected corners, re-projected each frame beside the X and never a raycast target (HUD-01 AC4). OUT-01's outline could not be reused - it is a layer swap on a surface mesh and an opening has no renderer.
+*B4* - drag routing was gated on the mode rather than the gesture, so in window mode every delta went to the draw controller even when no draw had started; a drag beginning over an existing window raycasts onto that window's collider, never starts a draw, and the camera got nothing. It gates on `IsDrawing` now, which is strictly narrower than the mode, so nothing that used to draw stops drawing. AR keeps its pose, TopDown keeps its pinch.
+*The world* - the room now sits in the same environment as the wardrobe configurator in `3D Test`: camera clears to that project's exact background (`040A07`), ambient is Flat 0.28 instead of a procedural sky, and a 50 x 50 m plane 2 cm under the floor slab carries its `DemoFloor` material. The plane has no collider, so it can never take a tap from a surface.
+**Where**: `Assets/Scripts/Presentation/WindowView.cs`, `SelectionController.cs` (comments), `RoomBootstrap.cs` (routing), `Assets/Scenes/Main.unity`, `Assets/Materials/Ground.mat`, and the PlayMode fixtures for drag routing, selection and window views
+**Requirement**: SEL-03 AC7 (rewritten), WIN-01 AC14, AD-026, AD-028
+
+**Done when**:
+
+- [x] A tap on a window selects it and clears the surface selection; a wall tap afterwards clears the window
+- [x] The delete X and the accent border follow the selection, from the room or from the list, and leave when it moves
+- [x] A drag starting over a window in window mode turns the camera and cuts nothing
+- [x] Black sky, grey floor, no collider under the room
+- [ ] Gate: suites not run - the owner asked for the runner to be held
+
+**Tests**: PlayMode - `InWindowDraw_ADragStartingOverAWindowTurnsTheCameraInstead`, `Tapping_a_window_selects_it_and_clears_the_surface_selection`, `Tapping_a_wall_after_a_window_clears_the_window_selection`, `OnTapped_SelectsTheWindowAndTheDeleteAffordanceFollows`, `MovingTheSelectionElsewhere_TakesTheDeleteAffordanceWithIt`, `SelectedWindow_IsOutlinedOverTheOpeningInTheAccent`, plus one renamed routing-precedence case.
+
+**Commit**: `[feat] select a window by tapping it and orbit from a drag over one`, `[raw] set the room's world to the configurator's black sky and grey floor`
+
+---
+
 ## Phase Execution Map
 
 ```
@@ -1055,10 +1123,12 @@ Phase 5:  T25 → T26
 Phase 6:  T30 → T32
           T31 → T32
 Phase 7:  T32 → T33
-Phase 8:  T33 → T34
+Phase 8:  T33 → T34 → T35
+          T34 → T36
+          T34 → T37
 ```
 
-Execution is strictly sequential - one task at a time, in order. 34 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6, 7 and 8 each fitted a single batch and ran inline, so no sub-agent offer was made.
+Execution was strictly sequential through T34. 37 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
 
 ---
 
@@ -1220,8 +1290,8 @@ still intent, not tasks - no acceptance criteria yet, and two of them move rules
 | # | Asked for | Touches | Open before it can be a task |
 | - | --------- | ------- | ---------------------------- |
 | B1 | A window created on a wall appears in the surfaces list as a child row under that wall; the wall row can collapse its windows, and a window can be selected from the list | LIST-01, LIST-02, `SurfaceListPanel`, `SurfaceRow` | **Done - T34**, specified as LIST-03. Both row kinds are the same `SurfaceRow`; per-wall collapse sits beside the panel-wide one |
-| B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | **Half done - T34**: the model now carries `SelectedWindowId` and the two selections exclude each other (AD-026), and the list honours it. What is left is the 3D side - a tap on the window itself still only opens the delete affordance - plus whatever selected-window feedback the room view should show (OUT-01 draws outlines for surfaces only) |
+| B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | **Done - T37** (model half in T34): the model carries `SelectedWindowId` and the two selections exclude each other (AD-026), and the list honours it. The 3D side landed in T37 under AD-028: the tap selects, and the opening is outlined in the accent since OUT-01 could not be reused |
 | B3 | Window mode switches itself off after each window is placed | WIN-01 AC1, AD-019, AD-021 | **Done - T34 follow-up**, recorded as AD-027. The button stays the exit when nothing was placed; a rejected rectangle keeps the mode |
 | B4 | A drag that starts inside an existing window still orbits the camera | SEL-03, WIN-02, `WindowDrawController`, `RoomBootstrap.OnDragDelta` | Windows already route drags for their own gesture; which mode owns a drag that begins over a window has to be stated per mode (Orbit vs WindowDraw) |
-| B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | The framing is a fit-to-room today (TOP-01) - "further back" needs a number or a margin factor. The animation needs a duration and what happens to input while it runs |
-| B6 | The room is bigger and more rectangular | ROOM-01 assumptions, `RoomBootstrap.roomSize` | Serialized field, so the change itself is a number - but it moves the camera framing, the 2D fit and the window size limits that were tuned against 6 x 4 m |
+| B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | **Done - T35**, TOP-01 AC7 and AC10: 1.25x pull-back, 0.35 s SmoothStep both ways, camera input dropped while it flies |
+| B6 | The room is bigger and more rectangular | ROOM-01 assumptions, `RoomBootstrap.roomSize` | **Done - T36**: 9 x 5 m, in both the `RoomBootstrap` default and the serialized value on the scene's Room object. Nothing camera-side needed changing - the orbit rig clamps off `RoomBounds` and the plan view fits off `_roomBounds.extents`, so both reframed themselves - and the window limits are wall-local, so only the walls got longer |

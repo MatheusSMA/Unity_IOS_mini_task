@@ -38,7 +38,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | Docs and UI language | English | User expressed no preference; consistent with English commit convention and English README deliverable | y |
 | Camera pitch clamp values | -60 deg to +60 deg, tunable via serialized field | Prevents flipping through floor/ceiling; exact bounds are a tuning knob | n |
 | Tap vs drag discrimination | Movement under 20 px (DPI-scaled) and under 300 ms counts as tap; otherwise drag | Standard mobile heuristic; prevents orbit gestures from moving the selection | n |
-| Room dimensions | 6 m x 4 m footprint, 2.8 m wall height | Typical room scale; exact dimensions are cosmetic and tunable | n |
+| Room dimensions | 9 m x 5 m footprint, 2.8 m wall height (was 6 x 4 until 2026-08-18, widened on the owner's request - B6) | Typical room scale; exact dimensions are cosmetic and tunable | y |
 | Surface thickness | 0.15 m default, serialized per surface | Typical interior wall; makes window reveals visible | n |
 | Minimum window size | 0.2 m x 0.2 m | Prevents accidental micro-windows from a tap-like drag | n |
 | Maximum window size | 2.0 m x 2.0 m, tunable | Keeps openings structurally plausible; revision request asked for a max without fixing a value | n |
@@ -108,7 +108,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 4. WHILE a surface is selected the system SHALL render it with a tint (MaterialPropertyBlock) visible from any camera angle. <!-- state-driven -->
 5. IF a touch moves more than the tap threshold or lasts longer than the tap duration THEN the system SHALL treat it as a camera drag and SHALL NOT change the selection. <!-- unwanted-behavior -->
 6. IF a tap ray passes through a window opening and hits no surface THEN the system SHALL leave the selection unchanged. <!-- unwanted-behavior -->
-7. IF a tap hits a window opening's collider THEN the system SHALL NOT change the selection and SHALL route the tap to the window deletion UI (WIN-04). <!-- unwanted-behavior -->
+7. IF a tap hits a window opening's collider THEN the system SHALL select that window - clearing any surface selection (AD-026) - and SHALL show the deletion affordance for it (WIN-04). Superseded AD-014 on 2026-08-18 (AD-028): the tap used to be routed to the window without touching the selection at all. <!-- event-driven -->
 
 **Independent Test**: Tap Wall 1 (selected + tinted), tap Wall 2 (Wall 2 selected, Wall 1 deselected in the same frame), tap Wall 2 again (still selected, no flicker), tap floor (floor selected, Wall 2 deselected); drag over a surface never changes selection.
 
@@ -172,6 +172,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 11. IF a drag in window mode starts on empty space, floor or ceiling THEN the system SHALL NOT create a preview or a window. <!-- unwanted-behavior -->
 12. WHEN a window exists in a wall THEN a raycast through the opening SHALL NOT hit that wall's surface mesh (the opening's own deletion collider, WIN-04, is exempt). <!-- event-driven -->
 13. WHILE window mode is active surface taps SHALL NOT change the selection — the target wall is locked; selecting another surface requires exiting window mode first. <!-- state-driven -->
+14. WHILE window mode is active a drag that has not begun a rectangle SHALL drive the orbit camera, so a drag starting over an existing window (whose collider takes the ray before the wall) still turns the view. <!-- state-driven -->
 
 **Independent Test**: Select a wall (button appears), select the floor (button hides), select the wall again, enter window mode, drag (preview follows finger), release (see through the hole, reveal faces visible at an angle, ray through opening hits nothing); attempt overlapping, tiny, oversized and edge-hugging rectangles (all rejected).
 
@@ -242,9 +243,10 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 4. WHILE the 2D view is active the system SHALL render the selected surface with the same tint state as the 3D view, and taps on surfaces in the plan SHALL move the selection (single-selection rules apply). <!-- state-driven -->
 5. WHEN the user taps "3D" THEN the system SHALL restore the ceiling's MeshRenderer and MeshCollider and place the camera back at the room centre in Orbit mode. <!-- event-driven -->
 6. WHILE the 2D view is active the system SHALL keep the surface list panel and Clear button functional. <!-- state-driven -->
-7. WHEN the 2D view is entered THEN the orthographic camera SHALL frame the full room plus a small margin (fit-to-room; never further out). <!-- event-driven -->
+7. WHEN the 2D view is entered THEN the orthographic camera SHALL frame the full room plus a margin: the fit-to-room size scaled by a configurable pull-back (1.25x default, B5), clamped into the same limits the pinch obeys. <!-- event-driven -->
 8. WHEN a tap in the 2D view hits the Floor within the configured screen-space tolerance (30 px default) of a wall THEN the system SHALL select the nearest such wall instead of the floor. <!-- event-driven -->
-9. WHILE the 2D view is active the system SHALL support pinch zoom within the configured limits (0.5x–2.0x of fit-to-room, default); pinch SHALL have no effect in the 3D views. <!-- state-driven -->
+9. WHILE the 2D view is active the system SHALL support pinch zoom within the configured limits (0.5x-2.0x of fit-to-room, default); pinch SHALL have no effect in the 3D views. <!-- state-driven -->
+10. WHEN the view switches in either direction the system SHALL move the camera from its current pose to the target pose over a configurable duration (0.35 s default) instead of snapping, SHALL land on exactly the pose it would have snapped to, and SHALL ignore camera input until it lands. The mode change itself SHALL stay instant: everything that rides ModeChanged fires when the switch is pressed, not when the camera arrives. <!-- event-driven -->
 
 **Independent Test**: Select a wall, tap "2D" (selection cleared, top-down view, ceiling invisible and not blocking taps); tap a wall in the plan (selected, list updates); tap "3D" (camera at room centre, ceiling back, selection consistent).
 

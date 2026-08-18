@@ -9,7 +9,7 @@ First moment the user sees something: pressing Play shows the synthetic room —
 ## Technical description
 
 - **File**: `Assets/Scripts/Presentation/RoomBootstrap.cs`; added to `Assets/Scenes/Main.unity` via Unity MCP.
-- On Awake: `RoomBuilder.Build` with serialized defaults (6 m x 4 m footprint, 2.8 m height, 0.15 m thickness — spec Assumptions); create RoomModel; instantiate one SurfaceView per SurfaceDefinition with its initial mesh (via SurfaceMeshBuilder, zero holes).
+- On Awake: `RoomBuilder.Build` with serialized defaults (9 m x 5 m footprint since B6, 2.8 m height, 0.15 m thickness — spec Assumptions); create RoomModel; instantiate one SurfaceView per SurfaceDefinition with its initial mesh (via SurfaceMeshBuilder, zero holes).
 - Owns/locates the shared references later controllers need (RoomModel instance, camera rig root, ModeManager) — plain serialized fields, no DI framework (AD-002).
 - Basic lit URP material for surfaces (one material, per-surface tint stays in MaterialPropertyBlock).
 

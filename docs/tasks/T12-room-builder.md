@@ -4,7 +4,7 @@
 
 ## Functional description
 
-Generates the room: from an ordered footprint polygon it produces N wall surfaces plus floor and ceiling, all solid slabs, named for the list panel ("Wall 1".."Wall N", "Floor", "Ceiling"). The shipped scene uses a 6 m x 4 m rectangle, but the algorithm is generic for any N >= 3 (ROOM-01 AC1).
+Generates the room: from an ordered footprint polygon it produces N wall surfaces plus floor and ceiling, all solid slabs, named for the list panel ("Wall 1".."Wall N", "Floor", "Ceiling"). The shipped scene uses a 9 m x 5 m rectangle (6 x 4 until B6, 2026-08-18), but the algorithm is generic for any N >= 3 (ROOM-01 AC1).
 
 ## Technical description
 
@@ -14,7 +14,7 @@ Generates the room: from an ordered footprint polygon it produces N wall surface
 - Floor: kind Floor spanning the footprint (rectangular footprint → simple quad basis; generic N uses the bounding basis, mesh cut handled by T11 only for walls — floor/ceiling never take windows, AD-008).
 - Ceiling: kind Ceiling at `height`, normal facing down.
 - Names by generation order (spec assumption row); ids sequential.
-- Defaults used by bootstrap: 6 x 4 m footprint, 2.8 m height, 0.15 m thickness.
+- Defaults used by bootstrap: 9 x 5 m footprint (6 x 4 until B6), 2.8 m height, 0.15 m thickness.
 
 ## Tests (EditMode)
 
