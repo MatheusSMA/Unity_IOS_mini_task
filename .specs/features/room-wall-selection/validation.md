@@ -451,3 +451,16 @@ Unity after the change.
    only while every exit from window mode really does cancel the draw (`DrawCancelRequested`, CLR-01 AC3).
 3. **The window row ordinals.** They are recomputed from the model on every add and remove, so a stale label
    means the model and the list disagree about order, not that a label was missed.
+
+### T38 — the owner's polish pass (2026-08-18, also unrun)
+
+| Rule | Where it is satisfied | Where it is asserted |
+| ---- | --------------------- | -------------------- |
+| SEL-02 / OUT-01 in the kit accent (AD-029) | `SurfaceView` sets `_OutlineColor` to `HudTheme.Accent` through the same `MaterialPropertyBlock` SEL-02 already used; the tint is the accent composited at `SelectedRowFill`'s alpha | `SurfaceViewTests.TintColour_IsTheKitSelectedGreen_OverTheSurfacesOwnColour` (with a channel-spread assert that tells "tinted" from "painted"), `SelectionOutlineTests.The_outline_colour_comes_from_the_kit_accent` |
+| WIN-03 maximum 6 m per axis | `WindowPlacementValidator.MaxSize` | `WindowPlacementValidatorTests.ALargePictureWindow_FitsUnderTheShippedMaximum`, `.RectAboveMaximumSize_IsRejectedAsTooLarge`, `.RectJustAboveTheMaximumSize_IsStillRejected` (both moved to a 9 m wall) |
+| WIN-01 AC15 live draw readout | `WindowDrawController.DrawRectChanged` -> `HudReadout` | `WindowDrawControllerTests.Readout_reports_the_live_rectangle_while_the_drag_grows`, `.Readout_returns_to_the_wall_after_a_placement`, `.Readout_returns_to_the_wall_after_a_rejection_and_after_a_cancel`, `.Readout_keeps_the_live_rectangle_invariant_culture` |
+| TOP-01 AC2 floor renderer off, collider on | `TopDownController.SetFloorVisible` | `TopDownControllerTests.Entering2D_HidesTheFloorRenderer_ButKeepsItsCollider` |
+
+**Watch:** `Settings/SelectionOutline.mat` carries the accent as its asset default *and* the property block sets
+it. The two were made to agree rather than proven to agree - proving it needs play mode. An orange ring in UAT
+means the property block is not overriding the override material, and that file is the fix.

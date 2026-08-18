@@ -41,7 +41,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | Room dimensions | 9 m x 5 m footprint, 2.8 m wall height (was 6 x 4 until 2026-08-18, widened on the owner's request - B6) | Typical room scale; exact dimensions are cosmetic and tunable | y |
 | Surface thickness | 0.15 m default, serialized per surface | Typical interior wall; makes window reveals visible | n |
 | Minimum window size | 0.2 m x 0.2 m | Prevents accidental micro-windows from a tap-like drag | n |
-| Maximum window size | 2.0 m x 2.0 m, tunable | Keeps openings structurally plausible; revision request asked for a max without fixing a value | n |
+| Maximum window size | 6.0 m per axis, tunable (2.0 until 2026-08-18) | Keeps openings structurally plausible; revision request asked for a max without fixing a value. Widened on the owner's request: on a 9 m wall a 2 m cap made a picture window impossible, and the clamp into the wall bounds minus the edge margin still bounds every rectangle | y |
 | Window edge margin | 0.1 m minimum from every wall edge | Prevents degenerate slivers of wall around an opening | n |
 | Surface naming | "Wall 1".."Wall N", "Floor", "Ceiling", ordered by generation order | Simple, generic for N walls | n |
 | AR mode validation in Editor | Use AR Foundation XR Simulation to validate AR pose mode in Editor | Validation target is Editor-only; XR Simulation is the supported Editor path | n |
@@ -173,6 +173,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 12. WHEN a window exists in a wall THEN a raycast through the opening SHALL NOT hit that wall's surface mesh (the opening's own deletion collider, WIN-04, is exempt). <!-- event-driven -->
 13. WHILE window mode is active surface taps SHALL NOT change the selection — the target wall is locked; selecting another surface requires exiting window mode first. <!-- state-driven -->
 14. WHILE window mode is active a drag that has not begun a rectangle SHALL drive the orbit camera, so a drag starting over an existing window (whose collider takes the ray before the wall) still turns the view. <!-- state-driven -->
+15. WHILE a rectangle is being drawn the readout SHALL report its live size in metres, and WHEN the drag ends - placed, rejected or cancelled - the readout SHALL return to reporting the selection. <!-- state-driven -->
 
 **Independent Test**: Select a wall (button appears), select the floor (button hides), select the wall again, enter window mode, drag (preview follows finger), release (see through the hole, reveal faces visible at an angle, ray through opening hits nothing); attempt overlapping, tiny, oversized and edge-hugging rectangles (all rejected).
 
@@ -238,7 +239,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 **Acceptance Criteria**:
 
 1. The system SHALL display two buttons at the top of the screen: "2D | 3D". <!-- ubiquitous -->
-2. WHEN the user taps "2D" THEN the system SHALL switch to an orthographic top-down camera and SHALL disable both the ceiling's MeshRenderer AND its MeshCollider (renderer alone would leave an invisible collider blocking every tap). <!-- event-driven -->
+2. WHEN the user taps "2D" THEN the system SHALL switch to an orthographic top-down camera, SHALL disable both the ceiling's MeshRenderer AND its MeshCollider (renderer alone would leave an invisible collider blocking every tap), and SHALL disable the floor's MeshRenderer only - the floor collider stays, because AC8 selects a wall from a tap that lands on the floor within tolerance. <!-- event-driven -->
 3. WHEN the 2D view is entered THEN the system SHALL cancel all transient state: the current selection is cleared and any in-progress window drawing is cancelled. <!-- event-driven -->
 4. WHILE the 2D view is active the system SHALL render the selected surface with the same tint state as the 3D view, and taps on surfaces in the plan SHALL move the selection (single-selection rules apply). <!-- state-driven -->
 5. WHEN the user taps "3D" THEN the system SHALL restore the ceiling's MeshRenderer and MeshCollider and place the camera back at the room centre in Orbit mode. <!-- event-driven -->

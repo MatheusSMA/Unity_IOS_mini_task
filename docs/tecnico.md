@@ -24,7 +24,7 @@ All product decisions below were made explicitly by the project owner during the
 | Room shape | Rectangular 4 walls in scene; generation code generic for N walls; surfaces are solid slabs, thickness 0.15 m default (serialized) |
 | Window drawing | Window mode button visible only while a Wall is selected AND mode is Orbit → drag two corners, live preview; while in window mode surface taps are swallowed (target wall locked) |
 | Window technique | Real procedural mesh cut through the solid wall, including 4 reveal faces per opening; MeshCollider updated in the same operation |
-| Window rules | Walls only (never floor/ceiling); multiple per wall; no overlap; min 0.2 m x 0.2 m; max 2.0 m x 2.0 m (tunable); min 0.1 m margin from every wall edge |
+| Window rules | Walls only (never floor/ceiling); multiple per wall; no overlap; min 0.2 m x 0.2 m; max 6.0 m per axis (tunable; 2.0 until 2026-08-18); min 0.1 m margin from every wall edge |
 | Window deletion | Tap opening collider (identified by `WindowView` component, no dedicated layer; hit never changes selection) → "X" at opening top-right → confirmation popup → remove + rebuild mesh/collider |
 | 2D / 3D view | "2D \| 3D" buttons at top; 2D = orthographic top-down framed fit-to-room (+small margin), ceiling renderer AND collider disabled, selection + in-progress draw cancelled; Floor tap within 30 px (tunable) of a wall selects that wall; pinch zoom 0.5x–2.0x (2D only); 3D returns camera to room centre |
 | AR mode | AR Foundation device pose drives the synthetic-room camera; touch camera input disabled while active |

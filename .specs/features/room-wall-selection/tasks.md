@@ -1097,6 +1097,61 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 
 ---
 
+### T38: Owner polish pass — accent selection, bigger windows, live draw readout, floor out of the plan
+
+**Done** - landed 2026-08-18. Four asks from the owner after trying Phase 8, landed as four commits. Brought
+AD-029 with it.
+
+**What**:
+1. *Selection reads in the kit accent* (AD-029). The OUT-01 ring and the SEL-02 tint are both `HudTheme.Accent`,
+   so a selected wall and a selected window finally speak the same colour. The tint is composited in C# at
+   `SelectedRowFill`'s alpha because the surface material is opaque URP Lit and drops `_BaseColor`'s alpha - a
+   direct assignment would have painted the wall solid neon. The window's screen-space border was evaluated for
+   surfaces and rejected; the reasoning is the whole of AD-029.
+2. *Windows may be big* - the per-axis maximum went from 2.0 m to 6.0 m. A 2 m cap made a picture window
+   impossible on a 9 m wall. The clamp into the wall bounds minus the edge margin still bounds every rectangle,
+   so the maximum only refuses the absurd.
+3. *The readout reports the drag* (WIN-01 AC15). `WindowDrawController` raises one event with `(surfaceId, rect)`
+   on start, on every move, and once from `CancelDraw` where the id is already `-1` - so the same event carries
+   the end of the draw and the panel falls straight back to the selection. The caption reads `DRAWING`, not the
+   wall's name, so the panel never labels a size that is not the labelled thing's size.
+4. *The floor leaves the plan view* (TOP-01 AC2). From straight above it was a grey lid over the room. Renderer
+   only: TOP-02 AC8 picks a wall out of a tap that lands on the floor within tolerance, so the collider stays -
+   the same trap AD-012 recorded for the ceiling, in reverse.
+
+**Where**: `Assets/Scripts/Presentation/SurfaceView.cs`, `TopDownController.cs`, `WindowDrawController.cs`,
+`RoomBootstrap.cs`, `Assets/Scripts/UI/HudReadout.cs`, `Assets/Scripts/Domain/WindowPlacementValidator.cs`,
+`Assets/Settings/SelectionOutline.mat`, and the PlayMode fixtures for surfaces, outline, top-down and window
+drawing, plus the EditMode validator fixture
+**Depends on**: T34, T35, T37
+**Requirement**: SEL-02, OUT-01, WIN-01 AC15, WIN-03 (max size), TOP-01 AC2, AD-029
+
+**Done when**:
+
+- [x] A selected surface is ringed and tinted in the kit accent, and the outline material's own default matches
+      so the asset and the property block cannot disagree
+- [x] A 6 x 2 m opening is legal on a long wall; anything past 6 m per axis is still refused
+- [x] The readout shows the live rectangle while drawing and returns to the selection the moment the drag ends
+- [x] The plan view hides the floor's renderer and keeps its collider
+- [ ] Gate: suites not run - the owner asked for the test runner to be held
+
+**Tests**: PlayMode - `TintColour_IsTheKitSelectedGreen_OverTheSurfacesOwnColour`,
+`The_outline_colour_comes_from_the_kit_accent`, `Entering2D_HidesTheFloorRenderer_ButKeepsItsCollider`,
+`Readout_reports_the_live_rectangle_while_the_drag_grows`, `Readout_returns_to_the_wall_after_a_placement`,
+`Readout_returns_to_the_wall_after_a_rejection_and_after_a_cancel`,
+`Readout_keeps_the_live_rectangle_invariant_culture`. EditMode -
+`ALargePictureWindow_FitsUnderTheShippedMaximum`, plus the two rejection cases moved onto a 9 m wall.
+
+**Commit**: `[feat] paint the selected surface in the kit accent`, `[feat] allow windows up to 6 metres per axis`,
+`[feat] report the rectangle under the finger while a window is drawn`,
+`[feat] take the floor out of the plan view's render`
+
+**Open**: `Settings/SelectionOutline.mat` now carries the accent as its asset default as well as through the
+property block. If UAT ever shows an orange ring, that file is the first place to look - the two paths were made
+to agree rather than proven to agree, because proving it needs play mode.
+
+---
+
 ## Phase Execution Map
 
 ```
@@ -1126,9 +1181,10 @@ Phase 7:  T32 → T33
 Phase 8:  T33 → T34 → T35
           T34 → T36
           T34 → T37
+          T35, T37 → T38
 ```
 
-Execution was strictly sequential through T34. 37 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
+Execution was strictly sequential through T34. 38 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
 
 ---
 
