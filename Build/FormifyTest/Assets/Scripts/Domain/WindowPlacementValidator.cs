@@ -28,6 +28,14 @@ namespace Formify.Domain
     /// </summary>
     public class WindowPlacementValidator
     {
+        /// <summary>
+        /// The clamped extent is a subtraction of two world coordinates, so a rectangle drawn exactly at the
+        /// limit lands a few 1e-8 either side of it depending on where on the wall it sits (0.2 m at x = 1.0
+        /// measures 0.20000005, at x = 0.5 it measures 0.19999999). Without this band the same window is
+        /// accepted on one wall and rejected on the next.
+        /// </summary>
+        private const float SizeEpsilon = 1e-4f;
+
         public float MinSize { get; set; } = 0.2f;
         public float MaxSize { get; set; } = 2.0f;
         public float EdgeMargin { get; set; } = 0.1f;
@@ -67,10 +75,10 @@ namespace Formify.Domain
 
             var clamped = new Rect2D(x0, y0, x1 - x0, y1 - y0);
 
-            if (clamped.width < MinSize || clamped.height < MinSize)
+            if (clamped.width < MinSize - SizeEpsilon || clamped.height < MinSize - SizeEpsilon)
                 return ValidationResult.Reject(WindowRejection.TooSmall);
 
-            if (clamped.width > MaxSize || clamped.height > MaxSize)
+            if (clamped.width > MaxSize + SizeEpsilon || clamped.height > MaxSize + SizeEpsilon)
                 return ValidationResult.Reject(WindowRejection.TooLarge);
 
             if (existing != null)

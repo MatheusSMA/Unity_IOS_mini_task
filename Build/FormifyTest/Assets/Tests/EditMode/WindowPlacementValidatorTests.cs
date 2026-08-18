@@ -151,13 +151,46 @@ namespace Formify.Tests.EditMode
             AssertRect(new Rect2D(2f, 1f, 0.5f, 0.5f), result.Rect);
         }
 
-        [Test]
-        public void RectAtExactlyTheMinimumSize_IsAccepted()
+        /// <summary>
+        /// Both origins draw the same 0.2 m window, but the clamped extent is a float subtraction: at x = 1.0
+        /// it comes out 0.20000005, at x = 0.5 it comes out 0.19999999. The minimum has to accept both, or the
+        /// same drag succeeds on one part of the wall and fails on another.
+        /// </summary>
+        [TestCase(1f, TestName = "RectAtExactlyTheMinimumSize_IsAccepted_DriftingUp")]
+        [TestCase(0.5f, TestName = "RectAtExactlyTheMinimumSize_IsAccepted_DriftingDown")]
+        public void RectAtExactlyTheMinimumSize_IsAccepted(float origin)
         {
-            var result = _validator.Validate(_wall, NoWindows, new Rect2D(1f, 1f, 0.2f, 0.2f));
+            var result = _validator.Validate(_wall, NoWindows, new Rect2D(origin, origin, 0.2f, 0.2f));
 
-            Assert.IsTrue(result.IsValid);
-            AssertRect(new Rect2D(1f, 1f, 0.2f, 0.2f), result.Rect);
+            Assert.IsTrue(result.IsValid, "rejected as " + result.Rejection);
+            AssertRect(new Rect2D(origin, origin, 0.2f, 0.2f), result.Rect);
+        }
+
+        [Test]
+        public void RectJustBelowTheMinimumSize_IsStillRejected()
+        {
+            var result = _validator.Validate(_wall, NoWindows, new Rect2D(1f, 1f, 0.19f, 0.19f));
+
+            Assert.IsFalse(result.IsValid);
+            Assert.AreEqual(WindowRejection.TooSmall, result.Rejection);
+        }
+
+        [Test]
+        public void RectJustAboveTheMaximumSize_IsStillRejected()
+        {
+            var result = _validator.Validate(_wall, NoWindows, new Rect2D(0.5f, 0.3f, 2.01f, 2.01f));
+
+            Assert.IsFalse(result.IsValid);
+            Assert.AreEqual(WindowRejection.TooLarge, result.Rejection);
+        }
+
+        [Test]
+        public void RectAtExactlyTheMaximumSize_IsAccepted()
+        {
+            var result = _validator.Validate(_wall, NoWindows, new Rect2D(0.5f, 0.3f, 2f, 2f));
+
+            Assert.IsTrue(result.IsValid, "rejected as " + result.Rejection);
+            AssertRect(new Rect2D(0.5f, 0.3f, 2f, 2f), result.Rect);
         }
 
         [Test]
