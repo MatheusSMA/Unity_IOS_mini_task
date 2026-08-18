@@ -137,6 +137,45 @@ namespace Formify.Tests.PlayMode
             Assert.IsFalse(blocked, "A ray through the opening must pass through the wall (WIN-02 AC12).");
         }
 
+        // ---- AD-027: one drag, one window ----
+
+        /// <summary>
+        /// The mode used to outlive the placement, and with it the AD-015 lock the surfaces list is given — so
+        /// the row the new window had just added to the list refused every tap until the button was pressed.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Placing_a_window_leaves_window_mode()
+        {
+            yield return new WaitForFixedUpdate();
+            EnterWindowDraw();
+
+            controller.OnDragStart(ScreenOf(wall, 1.0f, 1.0f));
+            controller.OnDragMove(ScreenOf(wall, 1.8f, 1.8f));
+            controller.OnDragEnd(ScreenOf(wall, 1.8f, 1.8f));
+
+            yield return null;
+
+            Assert.AreEqual(1, model.GetWindows(wall.id).Count);
+            Assert.AreEqual(Mode.Orbit, modes.Current, "the mode must return to Orbit once the window is placed");
+            Assert.AreEqual(wall.id, model.SelectedSurfaceId, "the wall stays selected, so the mode can be re-entered");
+        }
+
+        /// <summary>A rejected drag places nothing, so there is nothing to end the mode for.</summary>
+        [UnityTest]
+        public IEnumerator A_rejected_drag_stays_in_window_mode()
+        {
+            yield return new WaitForFixedUpdate();
+            EnterWindowDraw();
+
+            controller.OnDragStart(ScreenOf(wall, 1.0f, 1.0f));
+            controller.OnDragEnd(ScreenOf(wall, 1.0f, 1.0f));
+
+            yield return null;
+
+            Assert.AreEqual(0, model.GetWindows(wall.id).Count);
+            Assert.AreEqual(Mode.WindowDraw, modes.Current, "a refused rectangle must not drop the user out of the mode");
+        }
+
         // ---- EDGE-04: a tap is not a window ----
 
         [UnityTest]

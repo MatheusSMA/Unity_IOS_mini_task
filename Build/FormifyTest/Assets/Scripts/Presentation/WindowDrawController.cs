@@ -146,7 +146,12 @@ namespace Formify.Presentation
             if (model == null) return;
 
             WindowRejection reason;
-            model.TryAddWindow(surfaceId, rect, out reason);
+            if (!model.TryAddWindow(surfaceId, rect, out reason)) return;
+
+            // AD-027: one drag, one window. Staying in the mode also kept the surfaces list locked for as long
+            // as it lasted (AD-015), so a freshly placed window could not be picked from the list that had just
+            // grown a row for it.
+            if (modes != null) modes.TrySet(Mode.Orbit);
         }
 
         /// <summary>Idempotent: destroys the preview and creates no window.</summary>
