@@ -23,10 +23,11 @@ namespace Formify.Tests.PlayMode
         [SetUp]
         public void SetUp()
         {
-            // The two InputTestFixture-based fixtures restore the input system after themselves, which can bring
-            // back the simulated touchscreen TouchSimulation had already claimed; the next router to come up logs
-            // "[Assert] Already added touchscreen". Nothing here touches input - it builds a room and reads it
-            // back - so that leaked assert is noise, and without this it fails every test in the fixture.
+            // With the Device Simulator open, Unity keeps TouchSimulation alive for the whole editor session; the
+            // two InputTestFixture fixtures reset the input system after themselves, and TouchSimulation answers
+            // that by trying to add its simulated touchscreen again - "[Assert] Already added touchscreen".
+            // It is an editor-environment artefact, nothing this fixture does (it builds a room and reads it
+            // back), and without this it fails every test here depending on which window happens to be open.
             LogAssert.ignoreFailingMessages = true;
 
             _go = new GameObject("RoomBootstrap");

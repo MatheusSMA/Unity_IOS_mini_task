@@ -31,9 +31,6 @@ namespace Formify.Tests.PlayMode
             routerObject = new GameObject(nameof(InputRouter));
             router = routerObject.AddComponent<InputRouter>();
 
-            // InputRouter turns TouchSimulation on in the Editor, and that adds a second "Simulated Touchscreen"
-            // which would outrank the virtual one below as Touchscreen.current. Drop it for the duration of the test.
-            TouchSimulation.Destroy();
 
             InputSystem.AddDevice<Touchscreen>();
 
@@ -160,6 +157,94 @@ namespace Formify.Tests.PlayMode
             Assert.That(dragStarted, Is.EqualTo(0));
             Assert.That(dragDeltas, Is.EqualTo(0));
             Assert.That(dragEnded, Is.EqualTo(0));
+        }
+
+        // ---- AD-030: the same gestures from a mouse, for the Game view and any desktop build ----
+
+        [UnityTest]
+        public IEnumerator MouseClickRaisesTappedOnce()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            yield return null;
+
+            Set(mouse.position, TapPosition);
+            Press(mouse.leftButton);
+            yield return null;
+
+            Release(mouse.leftButton);
+            yield return null;
+
+            Assert.That(tapped, Is.EqualTo(1));
+            Assert.That(lastTap.x, Is.EqualTo(TapPosition.x).Within(0.5f));
+            Assert.That(lastTap.y, Is.EqualTo(TapPosition.y).Within(0.5f));
+            Assert.That(dragStarted, Is.EqualTo(0));
+            Assert.That(dragEnded, Is.EqualTo(0));
+        }
+
+        [UnityTest]
+        public IEnumerator MouseDraggedPastThresholdRaisesDragAndNeverTaps()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            yield return null;
+
+            Set(mouse.position, DragFrom);
+            Press(mouse.leftButton);
+            yield return null;
+
+            Set(mouse.position, DragTo);
+            yield return null;
+
+            Release(mouse.leftButton);
+            yield return null;
+
+            Assert.That(dragStarted, Is.EqualTo(1));
+            Assert.That(dragEnded, Is.EqualTo(1));
+            Assert.That(tapped, Is.EqualTo(0), "a drag never taps");
+            Assert.That(lastDragStart.x, Is.EqualTo(DragFrom.x).Within(0.5f));
+            Assert.That(lastDragEnd.x, Is.EqualTo(DragTo.x).Within(0.5f));
+        }
+
+        /// <summary>A finger wins: the mouse must never open a second gesture underneath a touch (EDGE-01).</summary>
+        [UnityTest]
+        public IEnumerator MouseIsIgnoredWhileAFingerIsDown()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            yield return null;
+
+            BeginTouch(1, TapPosition);
+            yield return null;
+
+            Set(mouse.position, DragTo);
+            Press(mouse.leftButton);
+            yield return null;
+            Release(mouse.leftButton);
+            yield return null;
+
+            EndTouch(1, TapPosition);
+            yield return null;
+
+            Assert.That(tapped, Is.EqualTo(1), "the finger's tap, and nothing from the mouse");
+            Assert.That(lastTap.x, Is.EqualTo(TapPosition.x).Within(0.5f));
+            Assert.That(dragStarted, Is.EqualTo(0));
+        }
+
+        /// <summary>EDGE-02 holds for the mouse too, asked with uGUI's own left-button pointer id.</summary>
+        [UnityTest]
+        public IEnumerator MousePressOverUiProducesNoEvents()
+        {
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            router.IsPointerOverUi = id => id == -1;
+
+            yield return null;
+
+            Set(mouse.position, TapPosition);
+            Press(mouse.leftButton);
+            yield return null;
+            Release(mouse.leftButton);
+            yield return null;
+
+            Assert.That(tapped, Is.EqualTo(0));
+            Assert.That(dragStarted, Is.EqualTo(0));
         }
 
         [UnityTest]

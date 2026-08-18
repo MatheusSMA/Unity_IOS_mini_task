@@ -47,9 +47,6 @@ namespace Formify.Tests.PlayMode
             bootstrapObject = new GameObject(nameof(RoomBootstrap));
             bootstrap = bootstrapObject.AddComponent<RoomBootstrap>();   // Awake builds the room and composes
 
-            // InputRouter turns TouchSimulation on in the Editor, and that adds a second "Simulated Touchscreen"
-            // which would outrank the virtual one below as Touchscreen.current. Drop it for the duration of the test.
-            TouchSimulation.Destroy();
             InputSystem.AddDevice<Touchscreen>();
 
             // EDGE-02's gate is InputRouterTests' subject; here it only has to be out of the way of the drag.

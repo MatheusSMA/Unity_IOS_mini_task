@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.InputSystem.Utilities;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Formify.Presentation
 {
-    /// <summary>SEL-03 AC5, EDGE-01, EDGE-02. Single doorway for touch: classifies tap vs drag once so no
+    /// <summary>SEL-03 AC5, EDGE-01, EDGE-02. Single doorway for pointing: classifies tap vs drag once so no
     /// controller ever re-classifies. It dispatches to nobody and never references ModeManager — controllers
-    /// subscribe to these events and gate themselves on ModeManager.Current.</summary>
+    /// subscribe to these events and gate themselves on ModeManager.Current.
+    /// Touch and mouse feed the same gesture machine (AD-030): a finger wins, and the mouse is picked up only
+    /// when there is none, so the Game view works with a mouse without a touchscreen anywhere in sight.</summary>
     public class InputRouter : MonoBehaviour
     {
         [SerializeField] float tapMovePixels = 20f;
@@ -40,7 +43,12 @@ namespace Formify.Presentation
         float startTime;
         bool isDrag;
         bool touchEnabled;
-        bool ownsTouchSimulation;
+
+        /// <summary>Sentinel for "the mouse owns the gesture" - touch ids are never negative.</summary>
+        const int MouseTrackedId = -2;
+
+        /// <summary>uGUI's pointer id for the left mouse button, which is what the EDGE-02 gate expects.</summary>
+        const int MousePointerId = -1;
 
         float MoveThreshold => Screen.dpi > 0f ? tapMovePixels * (Screen.dpi / 160f) : tapMovePixels;
 
@@ -49,30 +57,12 @@ namespace Formify.Presentation
             if (touchEnabled) return;
             touchEnabled = true;
             EnhancedTouchSupport.Enable();
-            #if UNITY_EDITOR
-            // EnhancedTouch has no native mouse events; the mouse stands in for touch. TouchSimulation is a
-            // global singleton, though, and a second router enabling it adds a second touchscreen - Unity
-            // asserts "Already added touchscreen" and every test in the fixture fails on the log. The instance
-            // flag above cannot see that, so ask the singleton, and only switch off what this router switched on.
-            if (TouchSimulation.instance == null)
-            {
-                TouchSimulation.Enable();
-                ownsTouchSimulation = true;
-            }
-            #endif
         }
 
         void OnDisable()
         {
             if (!touchEnabled) return;
             touchEnabled = false;
-            #if UNITY_EDITOR
-            if (ownsTouchSimulation)
-            {
-                TouchSimulation.Disable();
-                ownsTouchSimulation = false;
-            }
-            #endif
             EnhancedTouchSupport.Disable(); // no-op when the input system was already reset under us
             trackedId = -1;
             isDrag = false;
@@ -88,7 +78,13 @@ namespace Formify.Presentation
             currentIds.Clear();
             for (var i = 0; i < touches.Count; i++) currentIds.Add(touches[i].touchId);
 
-            if (trackedId < 0) TryTrack(touches);
+            if (trackedId == MouseTrackedId) UpdateMouse();
+            else if (trackedId < 0)
+            {
+                TryTrack(touches);
+                // A finger always wins: the mouse is only offered the gesture when no touch is on screen.
+                if (trackedId < 0 && touches.Count == 0) TryTrackMouse();
+            }
             else UpdateTracked(touches);
 
             var recycled = previousIds;
@@ -142,6 +138,48 @@ namespace Formify.Presentation
             // EnhancedTouch drops a finger from activeTouches one update after its Ended phase, so a touch can
             // vanish without Update ever seeing that phase. Disappearance ends the gesture just the same.
             Finish(lastPosition);
+        }
+
+        /// <summary>
+        /// AD-030: the Game view has no touchscreen and a desktop build has none either, so the mouse drives the
+        /// same machine under the same rules - including the hold-to-drag cutoff, so select and orbit part the
+        /// same way whatever the pointer is.
+        /// </summary>
+        void TryTrackMouse()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            if (IsPointerOverUi != null && IsPointerOverUi(MousePointerId)) return;   // EDGE-02
+
+            trackedId = MouseTrackedId;
+            startPosition = lastPosition = mouse.position.ReadValue();
+            startTime = UnscaledTime();
+            isDrag = false;
+        }
+
+        void UpdateMouse()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null)
+            {
+                // The device went away mid-gesture; end it where it was last seen, as a vanished touch does.
+                Finish(lastPosition);
+                return;
+            }
+
+            Vector2 position = mouse.position.ReadValue();
+            Vector2 delta = position - lastPosition;
+            lastPosition = position;
+
+            if (!isDrag && ((position - startPosition).magnitude > MoveThreshold ||
+                            UnscaledTime() - startTime > tapDurationSeconds))
+            {
+                isDrag = true;
+                DragStart?.Invoke(startPosition);
+            }
+
+            if (!mouse.leftButton.isPressed) Finish(position);
+            else if (isDrag && delta != Vector2.zero) DragDelta?.Invoke(delta);
         }
 
         void Finish(Vector2 position)
