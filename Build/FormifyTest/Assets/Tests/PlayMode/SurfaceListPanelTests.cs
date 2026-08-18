@@ -197,7 +197,8 @@ namespace Formify.Tests.PlayMode
             row.Label.text = "Wall 1";
             Assert.IsTrue(_panel.IsRowSelected(WallA), "the label text is not the source of truth");
 
-            row.Label.text = "Floor" + SurfaceRow.SelectedMarker;
+            // The retired suffix format, written by hand: even the old marker in a label means nothing now.
+            row.Label.text = "Floor  [SELECTED]";
             Assert.IsFalse(_panel.IsRowSelected(FloorId), "another row's text cannot mark it selected");
         }
 
