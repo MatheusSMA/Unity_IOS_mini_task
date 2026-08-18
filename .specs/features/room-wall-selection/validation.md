@@ -1,6 +1,6 @@
 # Validation Report — room-wall-selection
 
-**Verdict:** PASS (automated scope) · 3 items deferred to human UAT
+**Result:** PASS (automated scope) · 3 items deferred to human UAT
 **Date:** 2026-08-17
 **Feature:** room-wall-selection
 **Diff range verified:** `7306a9e..910adf9` (task breakdown → HEAD, 41 commits)
@@ -310,9 +310,19 @@ no test drives a physical mouse device.
   number.
 - **The HUD is placeholder.** The uGUI layer is built in code with grey boxes and white labels;
   the `Room Scanner HUD` art kit (`eb0124a`) is imported but its handoff settings are not applied
-  and no test asserts anything about appearance. This is known, tracked, and the next piece of
-  work — no acceptance criterion covers visual design.
+  and no test asserts anything about appearance. Now tracked: spec requirement HUD-01 and task T32
+  (`docs/tasks/T32-hud-art-kit.md`). AD-020 settled the orientation on 2026-08-18: the app ships
+  landscape and the HUD reproduces the kit's art; the portrait 1170x2532 scaler goes with it.
 - **Selection state is rendered as text.** `SurfaceListPanel` marks the selected row with the
   `"  [SELECTED]"` suffix, and four PlayMode tests read that string. Restyling the row to the
   handoff's green tag will break those tests unless the state is exposed separately from the
-  label text.
+  label text. Now tracked: HUD-01 AC3 and task T31, sequenced before T32 for exactly that reason.
+
+- **Three artefacts disagree about the window mode button.** `WindowModeButton.Refresh()` deactivates
+  the GameObject when the mode leaves Orbit (AD-015), so the exit branch in `OnClick` is unreachable
+  from the UI — while T22 and the class comment both describe that branch as the exit, and the art
+  kit ships a disabled-but-visible state for the same button. Found while reconciling the docs after
+  this report was written. AD-019 answered it on 2026-08-18 — the button stays on screen, disabled
+  instead of hidden, with a state dot — which rewrote WIN-01 AC1 and returned that requirement to
+  `In Tasks`; T30 implements it and re-verifies. Not a test failure: every WIN-01 behaviour this
+  report asserted still holds against the rule that was in force when it ran.

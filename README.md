@@ -151,5 +151,19 @@ Unity.exe -batchmode -runTests -projectPath <project> -testPlatform PlayMode -te
 - Window deletion was promoted into scope during the design revision; moving or resizing a placed window
   remains out of scope, along with LiDAR plane detection, 3D pinch zoom, persistence and multi-room.
 
-The one open item left is the iOS build-target switch, listed as a human check in
-[`validation.md`](.specs/features/room-wall-selection/validation.md).
+## What is still open
+
+The feature itself is complete and independently verified — EditMode 67/67, PlayMode 85/85, per-AC evidence in
+[`validation.md`](.specs/features/room-wall-selection/validation.md). What remains is tracked as Phase 6 in
+[`tasks.md`](.specs/features/room-wall-selection/tasks.md), with one document per task in [`docs/tasks/`](docs/tasks):
+
+| | Work | Status |
+| - | ---- | ------ |
+| T30 | Window mode button stays on screen, disabled instead of hidden, with a state dot for active (AD-019) — the code still hides it | decided, owner planning |
+| T31 | Expose the surface row's selected state as a field instead of a `[SELECTED]` suffix on the label | ready |
+| T32 | Apply the `Room Scanner HUD` art kit, landscape (AD-020) — the HUD is still placeholder boxes | ready, after T31 |
+
+Both decisions are logged in [`STATE.md`](.specs/STATE.md) as AD-019 and AD-020, `active` since 2026-08-18. Neither is implemented: the app is still portrait-capable and the button still hides itself.
+
+Three checks stay with a human because automation cannot assert them (`validation.md` section 7): the outline's
+appearance, AR pose tracking under XR Simulation, and the switch to the iOS build target.

@@ -13,7 +13,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/room-wall-selection/design.md`
-**Status**: Complete — all 29 tasks implemented and committed; see `validation.md` for the independent verification result
+**Status**: Phases 1-5 complete — 29 tasks implemented, committed and independently verified (`validation.md`). Phase 6 open: 3 follow-up tasks (T30-T32). Both product questions were answered on 2026-08-18 (AD-019, AD-020 in `.specs/STATE.md`); none of the three is implemented, and the owner is still planning T30
 
 ---
 
@@ -25,7 +25,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | ---------- | ------------------ | -------------------- | ---------------- | ----------- |
 | Domain (plain C#, `Assets/Scripts/Domain/`) | EditMode unit | All branches; 1:1 to spec ACs; every listed edge case has a test | `Assets/Tests/EditMode/*Tests.cs` | Unity MCP `run_tests` (EditMode); fallback AD-006: human runs Test Runner |
 | Presentation / UI (MonoBehaviours, `Assets/Scripts/Presentation/`, `Assets/Scripts/UI/`) | PlayMode | Happy path + every listed edge case + error/failure paths per AC | `Assets/Tests/PlayMode/*Tests.cs` | Unity MCP `run_tests` (PlayMode); fallback AD-006: human runs Test Runner |
-| Config / scene / asmdef / ProjectSettings / URP assets | none | - (build gate only) | - | build gate only |
+| Config / scene / asmdef / ProjectSettings / URP assets / sprite import settings (`.meta`) | none | - (build gate only) | - | build gate only |
 
 ## Gate Check Commands
 
@@ -85,6 +85,16 @@ T25 → T26
 T27 → T28
 T27 → T29
 ```
+
+
+### Phase 6: P4 HUD visual pass + button UX (follow-up)
+
+```
+T30 -> T32
+T31 -> T32
+```
+
+**Decided, not started.** AD-019 (button always on screen, disabled instead of hidden, state dot for active) and AD-020 (landscape) are both `active`. The owner is planning T30 - do not start it unprompted. T31 is the prerequisite that stops the restyle from breaking the four PlayMode tests that read the row label, so it runs before T32.
 
 ---
 
@@ -861,10 +871,94 @@ T27 → T29
 
 ---
 
+### T30: Settle the window mode button's exit affordance + PlayMode test
+
+**Decided (AD-019), not started** - the owner is planning this change; do not start it unprompted.
+
+**What**: The button stops appearing and disappearing. It stays on screen and carries its state visually: enabled while a Wall is selected in Orbit mode, disabled (art kit palette `E9FFF21A` border / `E9FFF205` fill / `4C6558` label) otherwise, with the state dot showing whether window mode is active. That supersedes AD-015's visibility rule, so `Refresh()` drives `Button.interactable` instead of `SetActive`, and the spec (WIN-01 AC1), `design.md`, T22 and the class comment are brought in line. Still to settle when planning: whether clicking the button while window mode is active exits the mode - that would make the existing branch in `OnClick` reachable, which is the only thing keeping it from being dead code.
+**Where**: `Assets/Scripts/UI/WindowModeButton.cs`, `Assets/Tests/PlayMode/WindowModeButtonTests.cs`, `docs/tasks/T22-window-mode-button.md`, `design.md`
+**Depends on**: None (root of Phase 6)
+**Reuses**: T22 button, T13 ModeManager
+**Requirement**: WIN-01 (AC1)
+
+**Tools**:
+
+- MCP: `unity-mcp` (run_tests)
+- Skill: NONE
+
+**Done when**:
+
+- [ ] `Refresh()` drives `interactable`, not `SetActive`; the button is never removed from the screen
+- [ ] PlayMode tests: the 4 cases from T22 assert enabled/disabled instead of visible/hidden, plus the state dot while mode == WindowDraw
+- [ ] No unreachable branch left in `WindowModeButton.OnClick`
+- [ ] WIN-01 AC1 returns to `Verified` in the spec's traceability table
+- [ ] Gate passes: run_tests EditMode + PlayMode
+
+**Tests**: PlayMode
+**Gate**: full
+
+**Commit**: `[fix] align window mode button exit behaviour`
+
+---
+
+### T31: Expose the surface row's selected state as a field + update PlayMode tests
+
+**What**: `SurfaceListPanel` marks the selected row by appending the `"  [SELECTED]"` suffix to the row label, and four PlayMode tests read that string. Move the state onto the row itself (a `SurfaceRow.IsSelected` property, or an equivalent dedicated field the tests can read) and have the tests assert that instead of parsing the label. Behaviour does not change - this is the seam that lets T32 restyle the row into the kit's green tag without touching a single test.
+**Where**: `Assets/Scripts/UI/SurfaceListPanel.cs`, `Assets/Tests/PlayMode/SurfaceListPanelTests.cs`
+**Depends on**: None (root of Phase 6)
+**Reuses**: T19 panel + rows
+**Requirement**: HUD-01 (AC3)
+
+**Tools**:
+
+- MCP: `unity-mcp` (run_tests)
+- Skill: NONE
+
+**Done when**:
+
+- [ ] Selected state readable without parsing the label text; label text is no longer the source of truth for selection
+- [ ] The four tests that read the label suffix assert the new field; LIST-01, LIST-02 and EDGE-06 coverage is unchanged
+- [ ] Gate passes: run_tests EditMode + PlayMode (152/152 baseline holds)
+
+**Tests**: PlayMode
+**Gate**: full
+
+**Commit**: `[refactor] expose surface row selection as state`
+
+---
+
+### T32: Apply the Room Scanner HUD art kit + PlayMode raycast regression
+
+**What**: Replace the placeholder grey boxes with the imported kit: set each sprite's import settings per `Assets/Sprite/Game UI mockups for Unity/Unity-handoff.md` (Sprite (2D and UI), Full Rect, the listed 9-slice borders, Pixels Per Unit matched to the -Nx variant shipped), narrow ProjectSettings to landscape and set the CanvasScaler for it (AD-020 - match the kit's art, the reference resolution itself is free), and build the panel, rail, buttons, rows, readout and overlays with the kit's sprites, colours and TMP settings. Decorative images (scanlines, glow, borders, dividers) get Raycast Target off. The kit's copy implies two behaviours this spec does not have - a Clear confirmation popup and a disabled-not-hidden window mode button - and neither is adopted here: HUD-01 AC5 keeps the spec rule, and the button follows whatever T30 settled.
+**Where**: `Assets/Sprite/Game UI mockups for Unity/sprites/*.png.meta`, `Assets/Scripts/UI/*.cs` (view construction), `ProjectSettings/ProjectSettings.asset`, `Assets/Tests/PlayMode/`
+**Depends on**: T30, T31
+**Reuses**: T19 panel, T20/T22/T26/T29 buttons, T23 window overlay
+**Requirement**: HUD-01 (AC1, AC2, AC4, AC5)
+
+**Tools**:
+
+- MCP: `unity-mcp` (UI, manage_asset, run_tests)
+- Skill: `unity-mcp-skill`
+
+**Done when**:
+
+- [ ] Every sprite the HUD uses carries the handoff's import settings; no sprite left on Unity defaults
+- [ ] App is landscape-only in ProjectSettings; the HUD reproduces the kit's layout, proportions and palette
+- [ ] PlayMode regression: a tap landing on a decorative image (scanline overlay, glow) still selects the surface behind it (EDGE-02 stays honest)
+- [ ] No acceptance criterion outside HUD-01 changes behaviour; full suite still green
+- [ ] Gate passes: Unity MCP console zero compile errors + run_tests EditMode + PlayMode
+
+**Tests**: PlayMode
+**Gate**: build
+
+**Commit**: `[feat] apply room scanner hud art kit`
+
+---
+
 ## Phase Execution Map
 
 ```
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6
 
 Phase 1:  T01 → T02 → T03 → T04 → T06
           T01 → T05 → T06
@@ -884,9 +978,11 @@ Phase 4:  T21 → T22
 Phase 5:  T25 → T26
           T27 → T28
           T27 → T29
+Phase 6:  T30 → T32
+          T31 → T32
 ```
 
-Execution is strictly sequential - one task at a time, in order. 29 tasks total → packs into ~4-5 batches of ~7 tasks (whole phases); sub-agent offer applies at Execute.
+Execution is strictly sequential - one task at a time, in order. 32 tasks total; Phases 1-5 (29 tasks) are done. Phase 6 holds 3 tasks and fits a single batch, so it runs inline - no sub-agent offer. Two of the three are gated on a pending decision (AD-019, AD-020).
 
 ---
 
@@ -923,6 +1019,9 @@ Execution is strictly sequential - one task at a time, in order. 29 tasks total 
 | T27 | 1 class + tests | ✅ Granular |
 | T28 | 1 file modify + tests | ✅ Granular |
 | T29 | 1 file (2 buttons) + tests | ✅ Granular |
+| T30 | 1 file modify + tests (+ doc corrections) | ✅ Granular |
+| T31 | 1 file modify + tests | ✅ Granular |
+| T32 | sprite import settings + UI construction (one cohesive visual pass) | ✅ OK (cohesive) |
 
 ## Diagram-Definition Cross-Check
 
@@ -957,6 +1056,9 @@ Execution is strictly sequential - one task at a time, in order. 29 tasks total 
 | T27 | prior phases only | (root) | ✅ Match |
 | T28 | T27 | T27→T28 | ✅ Match |
 | T29 | T27 | T27→T29 | ✅ Match |
+| T30 | prior phases only | (root of Phase 6) | ✅ Match |
+| T31 | prior phases only | (root of Phase 6) | ✅ Match |
+| T32 | T30, T31 | T30→T32, T31→T32 | ✅ Match |
 
 No dependency points to a later phase.
 
@@ -993,6 +1095,9 @@ No dependency points to a later phase.
 | T27 | presentation | PlayMode | PlayMode | ✅ OK |
 | T28 | presentation modify | PlayMode | PlayMode | ✅ OK |
 | T29 | UI | PlayMode | PlayMode | ✅ OK |
+| T30 | UI modify | PlayMode | PlayMode | ✅ OK |
+| T31 | UI modify | PlayMode | PlayMode | ✅ OK |
+| T32 | UI + sprite config | PlayMode | PlayMode | ✅ OK |
 
 ---
 
@@ -1010,7 +1115,7 @@ No dependency points to a later phase.
 | LIST-01 | T19 |
 | LIST-02 | T19 |
 | CLR-01 | T09, T20, T21 |
-| WIN-01 | T21, T22 |
+| WIN-01 | T21, T22, T30 |
 | WIN-02 | T11, T15, T21 |
 | WIN-03 | T08 |
 | WIN-04 | T10, T23 |
@@ -1024,5 +1129,6 @@ No dependency points to a later phase.
 | EDGE-04 | T21 |
 | EDGE-05 | T10, T11 |
 | EDGE-06 | T19 |
+| HUD-01 | T31, T32 |
 
-24/24 requirements mapped.
+25/25 requirements mapped.

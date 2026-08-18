@@ -145,5 +145,6 @@ enum Mode { Orbit, WindowDraw, Ar, TopDown }
 2. **P1 (MVP)**: room generation (solid surfaces) → camera orbit → single-selection + tint → surface list → clear.
 3. **P2**: window mode (gated button), preview, validation (min/max/margin/overlap), solid-mesh cutting with reveal faces + collider sync, window deletion, outline polish.
 4. **P3**: AR pose camera (XR Simulation validation), 2D/3D view switch.
+5. **P4 (open)**: HUD visual pass from the `Room Scanner HUD` art kit (HUD-01) and the window mode button's availability rule. Three tasks, T30-T32, none implemented. Both product questions were settled on 2026-08-18: the button stays on screen and shows state through the disabled palette and its dot instead of disappearing (AD-019, supersedes AD-015), and the app ships landscape with the HUD matching the kit's art (AD-020). P0-P3 are implemented and independently verified — see `validation.md`.
 
 Task breakdown (`tasks.md`) is produced in the Tasks phase after spec/design approval.
