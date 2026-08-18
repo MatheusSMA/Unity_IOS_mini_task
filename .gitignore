@@ -40,3 +40,6 @@
 sysinfo.txt
 crashlytics-build.properties
 .DS_Store
+
+# Local player builds
+[Bb]uild/[Ff]ormifyTest/[Pp]cBuild/
