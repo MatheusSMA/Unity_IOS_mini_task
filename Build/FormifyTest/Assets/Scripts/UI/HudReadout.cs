@@ -10,7 +10,8 @@ namespace Formify.Presentation
     /// <summary>
     /// The art kit's `Readout` panel (HUD-01 AC2): which surface is selected, how big it is, and how many
     /// windows it carries. It reads <see cref="RoomModel"/> directly — selection and window events are the only
-    /// inputs, so no controller has to remember to push to it, and it holds no state of its own.
+    /// inputs, so no controller has to remember to push to it. The only state it keeps is the rectangle of a
+    /// draw in progress (WIN-02), which lives nowhere in the model until the drag is released.
     /// Decoration in the kit's hierarchy sense, but a readout that lies is worse than no readout, so the numbers
     /// are live.
     /// </summary>
@@ -29,6 +30,11 @@ namespace Formify.Presentation
         [SerializeField] private TextMeshProUGUI chipLabel;
 
         private RoomModel _model;
+        private WindowDrawController _draw;
+
+        // -1 whenever no drag is running; the wall being drawn on while one is (WIN-02).
+        private int _drawSurfaceId = -1;
+        private Rect2D _drawRect;
 
         /// <summary>The surface name line, uppercased. Empty state included — never null once built.</summary>
         public string Caption => caption != null ? caption.text : null;
@@ -75,12 +81,17 @@ namespace Formify.Presentation
             return readout;
         }
 
-        /// <summary>Binds the model. Safe to call again: the previous subscriptions are dropped first.</summary>
-        public void Configure(RoomModel model)
+        /// <summary>
+        /// Binds the model, and optionally the window draw so the readout can report a drag while it happens
+        /// (WIN-02). Safe to call again: the previous subscriptions are dropped first.
+        /// </summary>
+        public void Configure(RoomModel model, WindowDrawController draw = null)
         {
             Unsubscribe();
 
             _model = model;
+            _draw = draw;
+            _drawSurfaceId = -1;
 
             if (_model != null)
             {
@@ -90,6 +101,8 @@ namespace Formify.Presentation
                 _model.WindowRemoved += OnWindowChanged;
             }
 
+            if (_draw != null) _draw.DrawRectChanged += OnDrawRectChanged;
+
             Refresh();
         }
 
@@ -97,8 +110,24 @@ namespace Formify.Presentation
 
         private void OnWindowChanged(WindowSpec spec) => Refresh();
 
+        /// <summary>Surface -1 means the drag is over, so the panel goes straight back to the selection.</summary>
+        private void OnDrawRectChanged(int surfaceId, Rect2D rect)
+        {
+            _drawSurfaceId = surfaceId;
+            _drawRect = rect;
+            Refresh();
+        }
+
         private void Refresh()
         {
+            // A drag in progress outranks the selection: the wall under it is the selected one anyway, and the
+            // rectangle under the finger is the only number the user is watching (WIN-02).
+            if (_drawSurfaceId >= 0)
+            {
+                ShowDrawing();
+                return;
+            }
+
             if (_model != null && _model.SelectedWindowId.HasValue)
             {
                 WindowSpec window = _model.GetWindow(_model.SelectedWindowId.Value);
@@ -160,6 +189,25 @@ namespace Formify.Presentation
             ShowChip(false, 0);
         }
 
+        /// <summary>
+        /// Reads like a selected window does — what it is, how big it is, which wall it is on — because that is
+        /// what it is about to become. The caption says DRAWING rather than naming a selection that is not what
+        /// the numbers describe, and the chip counts windows on a surface, so it means nothing here and goes
+        /// away (as it does for a selected window). On release the draw ends, this state drops, and the wall's
+        /// own readout comes back — still selected, since a placement returns to Orbit on it (AD-027).
+        /// </summary>
+        private void ShowDrawing()
+        {
+            SurfaceDefinition wall = _model != null ? _model.GetSurface(_drawSurfaceId) : null;
+
+            SetText(caption, "DRAWING");
+            SetText(dimensions,
+                _drawRect.width.ToString("0.00", CultureInfo.InvariantCulture) + "  ×  " +
+                _drawRect.height.ToString("0.00", CultureInfo.InvariantCulture) + " <size=11>m</size>");
+            SetText(helper, wall != null ? "on " + wall.name.ToLowerInvariant() : "drag to size the window");
+            ShowChip(false, 0);
+        }
+
         /// <summary>The kit puts the count in a green chip; with none placed the line reads as plain helper text.</summary>
         private void ShowChip(bool show, int windows)
         {
@@ -212,6 +260,8 @@ namespace Formify.Presentation
 
         private void Unsubscribe()
         {
+            if (_draw != null) _draw.DrawRectChanged -= OnDrawRectChanged;
+
             if (_model == null) return;
 
             _model.SelectionChanged -= OnSelectionChanged;
@@ -224,6 +274,7 @@ namespace Formify.Presentation
         {
             Unsubscribe();
             _model = null;
+            _draw = null;
         }
     }
 }

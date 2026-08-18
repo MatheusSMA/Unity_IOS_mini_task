@@ -1,3 +1,4 @@
+using System;
 using Formify.Domain;
 using UnityEngine;
 
@@ -54,6 +55,13 @@ namespace Formify.Presentation
 
         public bool IsDrawing { get; private set; }
 
+        /// <summary>
+        /// The live rectangle: on start, on every move, and once more with surface -1 when the draw is over —
+        /// placed, refused or cancelled. The HUD readout reports the drag off this rather than polling the
+        /// controller every frame (AD-007, AD-022).
+        /// </summary>
+        public event Action<int, Rect2D> DrawRectChanged;
+
         /// <summary>The clamped rectangle in wall-local metres. Keeps the last drawn value after end/cancel.</summary>
         public Rect2D PreviewRect { get; private set; }
 
@@ -106,6 +114,7 @@ namespace Formify.Presentation
 
             RefreshRect();
             CreatePreview();
+            RaiseDrawRectChanged();
         }
 
         /// <summary>InputRouter.DragDelta entry point: accumulates onto the last known pointer position.</summary>
@@ -128,6 +137,7 @@ namespace Formify.Presentation
             currentLocal = local;
             RefreshRect();
             RefreshPreviewMesh();
+            RaiseDrawRectChanged();
         }
 
         /// <summary>Drops the preview either way and lets the model accept or refuse the rectangle.</summary>
@@ -157,11 +167,20 @@ namespace Formify.Presentation
         /// <summary>Idempotent: destroys the preview and creates no window.</summary>
         public void CancelDraw()
         {
+            bool wasDrawing = IsDrawing;
+
             DestroyPreview();
             IsDrawing = false;
             TargetSurfaceId = -1;
             target = null;
+
+            // Only when something was actually being drawn: OnDragStart cancels first thing, and a start that
+            // misses the selected wall must not make the readout blink.
+            if (wasDrawing) RaiseDrawRectChanged();
         }
+
+        /// <summary>TargetSurfaceId is -1 after a cancel, which is how listeners read "the draw is over".</summary>
+        void RaiseDrawRectChanged() => DrawRectChanged?.Invoke(TargetSurfaceId, PreviewRect);
 
         // ---- geometry ----
 

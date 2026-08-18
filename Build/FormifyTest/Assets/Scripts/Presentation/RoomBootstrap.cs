@@ -210,7 +210,8 @@ namespace Formify.Presentation
 
             Hud.ViewSwitch.Configure(Modes, Hud.Canvas);
 
-            Hud.Readout.Configure(Model);
+            // WIN-02: the readout reports the live rectangle while a drag runs, so it needs the draw as well.
+            Hud.Readout.Configure(Model, WindowDraw);
             Hud.HintPill.Configure(Modes);
 
             Input.Tapped += OnTapped;
