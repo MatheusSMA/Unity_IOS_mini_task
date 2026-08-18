@@ -24,11 +24,23 @@ namespace Formify.Presentation
         private const string RowNamePrefix = "Row_";
         private const string WindowRowNamePrefix = "WindowRow_";
 
+        /// <summary>The VerticalLayoutGroup's own spacing, needed to measure the rows before they lay out.</summary>
+        private const float RowSpacing = 2f;
+
+        /// <summary>
+        /// The kit puts the Readout at y = -404 and the panel starts at -8, so this is where the list stops
+        /// growing before it would sit on top of it.
+        /// ponytail: past this the rows spill; a ScrollRect is the upgrade if a room ever has that many windows.
+        /// </summary>
+        private const float MaxPanelHeight = 388f;
+
         [SerializeField] private float panelWidth = 250f;
         [SerializeField] private float panelHeight = 312f;
         [SerializeField] private float rowHeight = 40f;
-        [SerializeField] private float windowRowHeight = 32f;
-        [SerializeField] private float windowRowIndent = 18f;
+        // A window row is visibly a child: shorter than a wall row and indented well past the index column, so
+        // the two depths never read as one flat list.
+        [SerializeField] private float windowRowHeight = 26f;
+        [SerializeField] private float windowRowIndent = 34f;
         [SerializeField] private float headerHeight = 38f;
         [SerializeField] private float panelMargin = 8f;
 
@@ -123,8 +135,7 @@ namespace Formify.Presentation
                 bool isWall = surface.kind == SurfaceKind.Wall;
 
                 _rows[surfaceId] = SurfaceRow.Create(rowContainer.transform, RowNamePrefix + surface.name, i + 1,
-                    surface.name, rowHeight, () => SelectRow(surfaceId), 0f,
-                    isWall ? (UnityEngine.Events.UnityAction)(() => ToggleWall(surfaceId)) : null);
+                    surface.name, rowHeight, () => SelectRow(surfaceId), 0f, isWall);
 
                 if (!isWall) continue;
 
@@ -141,6 +152,29 @@ namespace Formify.Presentation
 
             SetRow(_model.SelectedSurfaceId, true);
             SetWindowRow(_model.SelectedWindowId, true);
+            ResizePanel();
+        }
+
+        /// <summary>
+        /// The kit's panel is a fixed 250 x 312, which the six surfaces fill exactly — the first window would
+        /// spill its row out of the bottom. The panel grows with what it holds instead, and folding a wall wins
+        /// the space back.
+        /// </summary>
+        private void ResizePanel()
+        {
+            if (panelRoot == null || rowContainer == null) return;
+
+            float content = 0f;
+            foreach (Transform child in rowContainer.transform)
+            {
+                if (!child.gameObject.activeSelf) continue;
+
+                LayoutElement element = child.GetComponent<LayoutElement>();
+                if (element != null) content += element.preferredHeight + RowSpacing;
+            }
+
+            float wanted = headerHeight + content + 6f;
+            panelRoot.sizeDelta = new Vector2(panelWidth, Mathf.Clamp(wanted, panelHeight, MaxPanelHeight));
         }
 
         /// <summary>Hides/shows the rows. The collapse control stays active either way (LIST AC4).</summary>
@@ -159,6 +193,10 @@ namespace Formify.Presentation
         /// </summary>
         public void ToggleWall(int surfaceId)
         {
+            // A wall with nothing under it has nothing to fold, and folding it silently would leave the state
+            // waiting to bite the first window that lands there.
+            if (_model == null || _model.GetWindows(surfaceId).Count == 0) return;
+
             if (!_collapsedWalls.Remove(surfaceId)) _collapsedWalls.Add(surfaceId);
 
             ApplyWallCollapse(surfaceId);
@@ -170,6 +208,8 @@ namespace Formify.Presentation
         /// <summary>
         /// LIST-01: the kit draws the rows as list items, so tapping one selects that surface. The panel is opaque
         /// HUD and stops the tap (EDGE-02), so without this a finger on the list reaches nothing at all.
+        /// LIST-03 AC6: on a wall the same tap folds its windows. The row is the control — a 6 px dot beside the
+        /// label would be both a poor touch target and a dead spot inside the row's own hit area.
         /// </summary>
         private void SelectRow(int surfaceId)
         {
@@ -177,6 +217,7 @@ namespace Formify.Presentation
             if (_canSelect != null && !_canSelect()) return;
 
             _model.Select(surfaceId);
+            ToggleWall(surfaceId);
         }
 
         /// <summary>Same rule for a window row, and the model makes the two selections mutually exclusive.</summary>
@@ -237,6 +278,7 @@ namespace Formify.Presentation
             AddWindowRow(spec);
             RenumberWindows(spec.surfaceId);
             RefreshWallDisclosure(spec.surfaceId);
+            ResizePanel();
         }
 
         private void OnWindowRemoved(WindowSpec spec)
@@ -254,6 +296,7 @@ namespace Formify.Presentation
             _windowRows.Remove(spec.id);
             RenumberWindows(spec.surfaceId);
             RefreshWallDisclosure(spec.surfaceId);
+            ResizePanel();
         }
 
         /// <summary>
@@ -316,6 +359,8 @@ namespace Formify.Presentation
 
             if (_rows.TryGetValue(surfaceId, out SurfaceRow wallRow) && wallRow != null)
                 wallRow.SetExpanded(expanded);
+
+            ResizePanel();
         }
 
         private int OrdinalOf(WindowSpec spec)

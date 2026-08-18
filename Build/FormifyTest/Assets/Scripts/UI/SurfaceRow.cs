@@ -39,16 +39,19 @@ namespace Formify.Presentation
         /// <summary>The row's own button, or null when it was built without a click handler.</summary>
         public Button Button => _button;
 
-        /// <summary>The disclosure control, or null on a row that has nothing to collapse.</summary>
-        public Button DiscloseButton { get; private set; }
+        /// <summary>
+        /// The fold indicator, or null on a row that can hold nothing. It is a readout, not a control — the
+        /// whole wall row folds its windows, so a 6 px target would only steal taps from the row itself.
+        /// </summary>
+        public Graphic DiscloseIndicator => _discloseDot;
 
         /// <summary>
         /// The kit's row: fill, 2 px selection mark, index, name and the green SELECTED tag.
         /// <paramref name="index"/> below 1 leaves the index column out (a window row is identified by its
-        /// indent and its label, not by a number). <paramref name="onDisclose"/> adds the collapse control.
+        /// indent and its label, not by a number). <paramref name="withDisclosure"/> adds the fold indicator.
         /// </summary>
         public static SurfaceRow Create(Transform parent, string objectName, int index, string surfaceName,
-            float height, UnityAction onClick = null, float indent = 0f, UnityAction onDisclose = null)
+            float height, UnityAction onClick = null, float indent = 0f, bool withDisclosure = false)
         {
             RectTransform root = HudTheme.NewUi(objectName, parent);
 
@@ -104,7 +107,7 @@ namespace Formify.Presentation
                 labelLeft = indent + 30f;
             }
 
-            float tagInset = onDisclose != null ? 8f + DiscloseHit : 8f;
+            float tagInset = withDisclosure ? 8f + DiscloseHit : 8f;
 
             RectTransform labelRect = HudTheme.NewUi("Label", root);
             labelRect.anchorMin = new Vector2(0f, 0f);
@@ -113,7 +116,7 @@ namespace Formify.Presentation
             labelRect.offsetMax = new Vector2(-(TagWidth + tagInset + 2f), 0f);
             row._label = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
             row._label.text = surfaceName;
-            row._label.fontSize = index >= 1 ? 13f : 12f;
+            row._label.fontSize = index >= 1 ? 13f : 11f;
             row._label.characterSpacing = HudTheme.Tracking(40f);
             row._label.color = HudTheme.RowLabel;
             row._label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -132,7 +135,7 @@ namespace Formify.Presentation
                 TextAlignmentOptions.Center);
             row._tag.gameObject.SetActive(false);
 
-            if (onDisclose != null) BuildDisclosure(row, root, onDisclose);
+            if (withDisclosure) BuildDisclosure(row, root);
 
             return row;
         }
@@ -155,7 +158,7 @@ namespace Formify.Presentation
         /// </summary>
         public void SetDiscloseVisible(bool visible)
         {
-            if (DiscloseButton != null) DiscloseButton.gameObject.SetActive(visible);
+            if (_discloseDot != null) _discloseDot.gameObject.SetActive(visible);
         }
 
         /// <summary>Paints the disclosure control. Lit means the children are showing, like the panel header.</summary>
@@ -166,31 +169,18 @@ namespace Formify.Presentation
 
         /// <summary>
         /// The kit has no chevron, and the panel header already says "collapsed" with a dimmed dot — so the row
-        /// borrows that vocabulary instead of inventing art. The 6 px dot sits inside a 24 px hit area, because
-        /// 6 px is not a touch target; the invisible fill IS the button, so it has to stay a raycast target.
+        /// borrows that vocabulary instead of inventing art. It is an indicator only: the wall row itself folds
+        /// its windows, so a control here would carve a dead spot out of the row's own hit area.
         /// </summary>
-        private static void BuildDisclosure(SurfaceRow row, RectTransform root, UnityAction onDisclose)
+        private static void BuildDisclosure(SurfaceRow row, RectTransform root)
         {
-            RectTransform hit = HudTheme.NewUi("Disclose", root);
-            hit.anchorMin = new Vector2(1f, 0.5f);
-            hit.anchorMax = new Vector2(1f, 0.5f);
-            hit.pivot = new Vector2(1f, 0.5f);
-            hit.sizeDelta = new Vector2(DiscloseHit, DiscloseHit);
-            hit.anchoredPosition = new Vector2(-4f, 0f);
-
-            var area = hit.gameObject.AddComponent<Image>();
-            area.color = Color.clear;
-            area.raycastTarget = true;
-
-            row.DiscloseButton = hit.gameObject.AddComponent<Button>();
-            row.DiscloseButton.targetGraphic = area;
-            row.DiscloseButton.transition = Selectable.Transition.None;
-            row.DiscloseButton.onClick.AddListener(onDisclose);
-
-            RectTransform dot = HudTheme.NewUi("Dot", hit);
-            dot.anchorMin = new Vector2(0.5f, 0.5f);
-            dot.anchorMax = new Vector2(0.5f, 0.5f);
+            RectTransform dot = HudTheme.NewUi("Disclose", root);
+            dot.anchorMin = new Vector2(1f, 0.5f);
+            dot.anchorMax = new Vector2(1f, 0.5f);
+            dot.pivot = new Vector2(1f, 0.5f);
             dot.sizeDelta = new Vector2(DiscloseDot, DiscloseDot);
+            dot.anchoredPosition = new Vector2(-(DiscloseHit - DiscloseDot) * 0.5f - 4f, 0f);
+
             row._discloseDot = dot.gameObject.AddComponent<Image>();
             row._discloseDot.color = HudTheme.Accent;
             row._discloseDot.raycastTarget = false;

@@ -183,19 +183,50 @@ namespace Formify.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator The_disclosure_control_shows_up_with_the_first_window()
+        public IEnumerator The_fold_indicator_shows_up_with_the_first_window()
         {
             SurfaceRow wallRow = WallRow("Wall 1");
-            Assert.IsNotNull(wallRow.DiscloseButton, "a wall row is built with its disclosure control");
-            Assert.IsFalse(wallRow.DiscloseButton.gameObject.activeSelf,
-                "a wall with no windows must not offer to fold them");
+            Assert.IsNotNull(wallRow.DiscloseIndicator, "a wall row is built with its fold indicator");
+            Assert.IsFalse(wallRow.DiscloseIndicator.gameObject.activeSelf,
+                "a wall with no windows must not claim it can fold them");
 
             AddWindow(WallA, 1f);
 
             yield return null;
 
-            Assert.IsTrue(wallRow.DiscloseButton.gameObject.activeSelf);
-            Assert.IsNull(WallRow("Floor").DiscloseButton, "only a wall can carry windows");
+            Assert.IsTrue(wallRow.DiscloseIndicator.gameObject.activeSelf);
+            Assert.IsNull(WallRow("Floor").DiscloseIndicator, "only a wall can carry windows");
+        }
+
+        /// <summary>The row is the control: no separate 6 px target, and the tap still selects (LIST-03 AC6).</summary>
+        [UnityTest]
+        public IEnumerator Tapping_a_wall_row_folds_its_windows_and_still_selects_it()
+        {
+            int windowId = AddWindow(WallA, 1f);
+
+            yield return null;
+
+            WallRow("Wall 1").Button.onClick.Invoke();
+
+            Assert.AreEqual(WallA, _model.SelectedSurfaceId, "the tap must still select the wall");
+            Assert.IsFalse(_panel.IsWindowRowShown(windowId), "the tap did not fold the wall's windows");
+
+            WallRow("Wall 1").Button.onClick.Invoke();
+
+            Assert.IsTrue(_panel.IsWindowRowShown(windowId), "the second tap did not unfold them");
+            Assert.AreEqual(WallA, _model.SelectedSurfaceId);
+        }
+
+        [UnityTest]
+        public IEnumerator Tapping_a_wall_with_no_windows_only_selects()
+        {
+            yield return null;
+
+            WallRow("Wall 2").Button.onClick.Invoke();
+
+            Assert.AreEqual(WallB, _model.SelectedSurfaceId);
+            Assert.IsTrue(_panel.IsWallExpanded(WallB),
+                "a wall with nothing under it must not be left in a folded state");
         }
 
         [UnityTest]
