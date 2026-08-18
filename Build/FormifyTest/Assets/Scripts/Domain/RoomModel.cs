@@ -3,7 +3,10 @@ using System.Collections.Generic;
 
 namespace Formify.Domain
 {
-    /// <summary>Mutable room state. At most one surface is selected at any time.</summary>
+    /// <summary>
+    /// Mutable room state. One thing is selected at a time and it is either a surface or a window — selecting
+    /// either clears the other, so "what is selected" is never ambiguous (AD-026).
+    /// </summary>
     public class RoomModel
     {
         private readonly IReadOnlyList<SurfaceDefinition> _surfaces;
@@ -38,13 +41,26 @@ namespace Formify.Domain
             if (SelectedSurfaceId == surfaceId) return;
             if (GetSurface(surfaceId) == null) return;
 
+            ClearWindowSelection();
+
             int? previous = SelectedSurfaceId;
             SelectedSurfaceId = surfaceId;
             SelectionChanged?.Invoke(previous, surfaceId);
         }
 
-        /// <summary>Idempotent: clearing an empty selection raises nothing.</summary>
+        /// <summary>Idempotent: clearing an empty selection raises nothing. Clears a selected window too.</summary>
         public void ClearSelection()
+        {
+            ClearWindowSelection();
+
+            if (SelectedSurfaceId == null) return;
+
+            int? previous = SelectedSurfaceId;
+            SelectedSurfaceId = null;
+            SelectionChanged?.Invoke(previous, null);
+        }
+
+        private void ClearSurfaceSelection()
         {
             if (SelectedSurfaceId == null) return;
 
@@ -63,10 +79,55 @@ namespace Formify.Domain
         public event Action<WindowSpec> WindowAdded;
         public event Action<WindowSpec> WindowRemoved;
 
+        /// <summary>The selected window, or null. Never set at the same time as <see cref="SelectedSurfaceId"/>.</summary>
+        public int? SelectedWindowId { get; private set; }
+
+        /// <summary>(previous, current), the window counterpart of <see cref="SelectionChanged"/>.</summary>
+        public event Action<int?, int?> WindowSelectionChanged;
+
         public IReadOnlyList<WindowSpec> GetWindows(int surfaceId)
         {
             List<WindowSpec> list;
             return _windows.TryGetValue(surfaceId, out list) ? (IReadOnlyList<WindowSpec>)list : NoWindows;
+        }
+
+        /// <summary>The window with this id, from whichever surface holds it. Null when there is none.</summary>
+        public WindowSpec GetWindow(int windowId)
+        {
+            foreach (KeyValuePair<int, List<WindowSpec>> entry in _windows)
+            {
+                List<WindowSpec> list = entry.Value;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i].id == windowId) return list[i];
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Selects a window. Unknown or already selected id is a no-op. A surface selection is cleared first
+        /// (AD-026), so a window row and a surface row can never both read as selected.
+        /// </summary>
+        public void SelectWindow(int windowId)
+        {
+            if (SelectedWindowId == windowId) return;
+            if (GetWindow(windowId) == null) return;
+
+            ClearSurfaceSelection();
+
+            int? previous = SelectedWindowId;
+            SelectedWindowId = windowId;
+            WindowSelectionChanged?.Invoke(previous, windowId);
+        }
+
+        private void ClearWindowSelection()
+        {
+            if (SelectedWindowId == null) return;
+
+            int? previous = SelectedWindowId;
+            SelectedWindowId = null;
+            WindowSelectionChanged?.Invoke(previous, null);
         }
 
         /// <summary>Stores the CLAMPED rect returned by the validator. Rejection leaves the model untouched.</summary>
@@ -111,6 +172,9 @@ namespace Formify.Domain
             WindowSpec spec = RemoveWindow(windowId);
             if (spec == null) return false;
 
+            // A selection pointing at a window that no longer exists would outlive it in every view.
+            if (SelectedWindowId == windowId) ClearWindowSelection();
+
             WindowRemoved?.Invoke(spec);
             return true;
         }
@@ -118,6 +182,8 @@ namespace Formify.Domain
         /// <summary>EDGE-05: undo a failed add without echoing a WindowRemoved event to listeners.</summary>
         public void RollbackWindowAdd(int windowId)
         {
+            if (SelectedWindowId == windowId) ClearWindowSelection();
+
             RemoveWindow(windowId);
         }
 
