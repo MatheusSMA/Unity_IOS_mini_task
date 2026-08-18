@@ -126,8 +126,12 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 2. WHEN the selection changes THEN the system SHALL update both the previously selected row and the newly selected row within the same frame, driven by a single selection-changed notification carrying (previous, current). <!-- event-driven -->
 3. WHEN the user taps the panel's collapse control THEN the system SHALL toggle the panel between expanded and collapsed. <!-- event-driven -->
 4. WHILE the panel is collapsed the system SHALL keep the collapse control visible so the panel can be re-expanded. <!-- state-driven -->
+5. WHEN a window is added to a wall THEN the system SHALL show it in the panel as a row nested under that wall, in the order the walls hold their windows, and WHEN a window is removed THEN the system SHALL remove its row and renumber the windows that remain on that wall. <!-- event-driven -->
+6. The system SHALL offer a per-wall disclosure control on every wall row that carries at least one window, and SHALL NOT offer it on a wall with none. <!-- ubiquitous -->
+7. WHILE a wall is collapsed the system SHALL hide that wall's window rows only, keeping the wall row itself and every other wall's rows visible, and SHALL keep the hidden rows bound so they are correct the moment the wall is expanded again. <!-- state-driven -->
+8. WHEN the user taps a window row THEN the system SHALL select that window, deselect whatever was selected before it - surface or window - and mark the window row as the selected one. <!-- event-driven -->
 
-**Independent Test**: Move the selection between surfaces while watching the panel; exactly two rows change per tap (old off, new on); panel collapses and expands.
+**Independent Test**: Move the selection between surfaces while watching the panel; exactly two rows change per tap (old off, new on); panel collapses and expands. Cut two windows into one wall: both appear indented under it, the wall gains a disclosure control that folds them away and back, tapping one selects it and clears the wall, and deleting the first renames the second to "Window 1".
 
 ---
 
@@ -290,6 +294,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | SEL-03 | P1: Select a surface by tapping | Tasks | Verified |
 | LIST-01 | P1: Real-time surface list | Tasks | Verified |
 | LIST-02 | P1: Real-time surface list | Tasks | Verified |
+| LIST-03 | P1: Real-time surface list | Tasks | Implemented, suite not run |
 | CLR-01 | P1: Clear selection | Tasks | Verified |
 | WIN-01 | P2: Window holes by rectangle drag | Tasks | Verified |
 | WIN-02 | P2: Window holes by rectangle drag | Tasks | Verified |
@@ -307,7 +312,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | EDGE-06 | Edge Cases | Tasks | Verified |
 | HUD-01 | P4: HUD visual pass | Tasks | Verified |
 
-**ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating and exit (enabled in Orbit or WindowDraw) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8); HUD-01 art-kit HUD pass incl. selected-state field and raycast hygiene (H all).
+**ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); LIST-03 window rows nested under their wall, per-wall collapse, window selection (S3.5-S3.8); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating and exit (enabled in Orbit or WindowDraw) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8); HUD-01 art-kit HUD pass incl. selected-state field and raycast hygiene (H all).
 
 **HUD-01 was implemented on 2026-08-18** by T31 (AC3) and T32 (AC1, AC2, AC4, AC5). Appearance itself stays a
 human check (`validation.md` section 7); what automation asserts is what a restyle can break silently — decoration

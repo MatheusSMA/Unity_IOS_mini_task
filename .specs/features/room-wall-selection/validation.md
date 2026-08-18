@@ -125,6 +125,19 @@ the validation target. The test now pins the active level (AD-017).
 | 3 · collapse control toggles the panel | `SurfaceListPanelTests.Collapsed_RowsKeepTrackingSelectionAndTheCollapseControlStaysVisible` — exercises the control's `onClick`, not `ToggleCollapsed()` directly, so the wiring is covered too | PM |
 | 4 · the control stays visible while collapsed | same test, asserts `activeInHierarchy` on the control | PM |
 
+### LIST-03 — Windows nested under their wall
+
+Written with T34; the suites were not re-run (the owner asked for the runner to be held), so this block records
+what asserts each AC, not a pass.
+
+| AC | Evidence | Kind |
+| -- | -------- | ---- |
+| 5 · a placed window becomes a row under its wall, a deleted one takes its row and renumbers the rest | `SurfaceListWindowRowsTests.A_placed_window_becomes_a_row_directly_under_its_wall`, `.Windows_stay_under_their_own_wall`, `.Deleting_a_window_removes_its_row_and_renumbers_the_rest` — sibling index against the wall row, not just existence | PM |
+| 6 · the disclosure control appears with the first window and never on a wall without one | `.The_disclosure_control_shows_up_with_the_first_window` — also asserts the floor row has none | PM |
+| 7 · folding hides that wall's windows only, and the binding survives | `.Collapsing_a_wall_hides_only_its_own_windows`, `.A_window_added_to_a_folded_wall_stays_folded` | PM |
+| 8 · a window row selects the window and drops whatever was selected | `.Tapping_a_window_row_selects_the_window_and_drops_the_wall`, `.Selecting_a_wall_unmarks_the_window_row`; the model rule itself in `RoomModelWindowSelectionTests` (mutual exclusion, unknown id, idempotence, removal clearing the selection before `WindowRemoved`) | PM + EM |
+| — · the tap gate (AD-015) covers window rows | `.A_blocked_panel_does_not_select_a_window_row` | PM |
+
 ### CLR-01 — Clear selection
 
 | AC | Evidence | Kind |

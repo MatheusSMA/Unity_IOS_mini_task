@@ -993,10 +993,44 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 
 ---
 
+## Phase 8: windows in the list
+
+### T34: Windows as nested rows in the surfaces list (B1) + tests
+
+**Done** - landed 2026-08-18. Brought one decision with it, AD-026 (one selection, two kinds).
+
+**What**: A window is a row too (LIST-03). `RoomModel` gains `SelectedWindowId`, `SelectWindow` and `GetWindow`, and selecting a surface or a window clears the other, so "the selected row" is never two rows (AD-026); removing the selected window clears the selection before `WindowRemoved` goes out, so no view paints a window that is gone. `SurfaceListPanel` draws each window indented under the wall it was cut into, live on `WindowAdded` / `WindowRemoved`, renumbers a wall's windows when one is deleted, and gives every wall row a disclosure control - hidden until that wall carries a window - that folds its windows away without touching the wall row or any binding. `SurfaceRow` grew the two variants: indented and index-less for a window, plus the disclosure dot for a wall. The readout follows the window selection too, so selecting a window from the list no longer leaves it reading "NO SURFACE".
+**Where**: `Assets/Scripts/Domain/RoomModel.cs`, `Assets/Scripts/UI/SurfaceListPanel.cs`, `Assets/Scripts/UI/SurfaceRow.cs`, `Assets/Scripts/UI/HudReadout.cs`, `Assets/Tests/EditMode/RoomModelWindowSelectionTests.cs`, `Assets/Tests/PlayMode/SurfaceListWindowRowsTests.cs`, `Assets/Scenes/Main.unity` (re-baked)
+**Depends on**: T33
+**Reuses**: `SurfaceRow` for both row kinds, the panel's existing selection binding and tap gate, the header's dot vocabulary for the disclosure control (the kit ships no chevron)
+**Requirement**: LIST-03, AD-026
+
+**Tools**:
+
+- MCP: `unity-mcp` (refresh_unity, read_console, execute_menu_item, manage_scene)
+
+**Done when**:
+
+- [x] A placed window appears as an indented row directly under its wall, in model order; deleting one removes its row and renumbers the rest
+- [x] Every wall row with at least one window offers the disclosure control; folding hides that wall's windows only, and the wall row stays
+- [x] Tapping a window row selects the window, clears the surface selection and marks the window row - and the reverse holds
+- [x] The panel's tap gate (AD-015) covers window rows, so nothing selects while a window is being drawn
+- [x] The readout reports the selected window instead of falling back to the empty state
+- [ ] Gate: EditMode + PlayMode suites - **not run; the owner asked for the test runner to be held**
+
+**Tests**: EditMode (`RoomModelWindowSelectionTests`, 9 cases), PlayMode (`SurfaceListWindowRowsTests`, 10 cases)
+**Gate**: build (compile verified through Unity MCP with a clean console; the bake re-ran and the wall rows carry their hidden disclosure control)
+
+**Commit**: `[feat] list windows under their wall`
+
+**Not in this task**: a tap on the window itself in 3D still opens the delete affordance and does not select (that is B2's remaining half), and nothing about window mode's lifetime changed (B3).
+
+---
+
 ## Phase Execution Map
 
 ```
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8
 
 Phase 1:  T01 → T02 → T03 → T04 → T06
           T01 → T05 → T06
@@ -1019,9 +1053,10 @@ Phase 5:  T25 → T26
 Phase 6:  T30 → T32
           T31 → T32
 Phase 7:  T32 → T33
+Phase 8:  T33 → T34
 ```
 
-Execution is strictly sequential - one task at a time, in order. 33 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phase 6 (3 tasks) and Phase 7 (1 task) each fitted a single batch and ran inline, so no sub-agent offer was made.
+Execution is strictly sequential - one task at a time, in order. 34 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6, 7 and 8 each fitted a single batch and ran inline, so no sub-agent offer was made.
 
 ---
 
@@ -1176,14 +1211,14 @@ No dependency points to a later phase.
 
 ## Phase 8 backlog - requested 2026-08-18, not yet specified
 
-The owner asked for these after T33. They are recorded here as intent, not as tasks: none has acceptance
-criteria yet, and three of them move rules that other requirements already own (flagged below). Specify before
-implementing.
+The owner asked for these after T33. B1 has since been specified as LIST-03 and shipped as T34; the rest are
+still intent, not tasks - no acceptance criteria yet, and two of them move rules other requirements already own
+(flagged below). Specify before implementing.
 
 | # | Asked for | Touches | Open before it can be a task |
 | - | --------- | ------- | ---------------------------- |
-| B1 | A window created on a wall appears in the surfaces list as a child row under that wall; the wall row can collapse its windows, and a window can be selected from the list | LIST-01, LIST-02, `SurfaceListPanel`, `SurfaceRow` | The list is one row per `RoomModel.Surfaces` entry today, and collapse is panel-wide (LIST-02). Per-wall collapse and a second row kind are both new |
-| B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | Selection is a single `int?` surface id. Windows carry their own ids, so the model needs one selection space covering both - or the selection becomes a (kind, id) pair. This is a domain change, not a view change |
+| B1 | A window created on a wall appears in the surfaces list as a child row under that wall; the wall row can collapse its windows, and a window can be selected from the list | LIST-01, LIST-02, `SurfaceListPanel`, `SurfaceRow` | **Done - T34**, specified as LIST-03. Both row kinds are the same `SurfaceRow`; per-wall collapse sits beside the panel-wide one |
+| B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | **Half done - T34**: the model now carries `SelectedWindowId` and the two selections exclude each other (AD-026), and the list honours it. What is left is the 3D side - a tap on the window itself still only opens the delete affordance - plus whatever selected-window feedback the room view should show (OUT-01 draws outlines for surfaces only) |
 | B3 | Window mode switches itself off after each window is placed | WIN-01 AC1, AD-019, AD-021 | AD-021 made the button the visible exit from window mode; an automatic exit changes what the state dot and the enabled set mean between placements |
 | B4 | A drag that starts inside an existing window still orbits the camera | SEL-03, WIN-02, `WindowDrawController`, `RoomBootstrap.OnDragDelta` | Windows already route drags for their own gesture; which mode owns a drag that begins over a window has to be stated per mode (Orbit vs WindowDraw) |
 | B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | The framing is a fit-to-room today (TOP-01) - "further back" needs a number or a margin factor. The animation needs a duration and what happens to input while it runs |
