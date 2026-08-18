@@ -31,6 +31,7 @@
 | AD-024 | The shipped density is the kit's -3x set, copied into `Assets/Resources/HUD/` under base names (`row_fill_9s.png`, `icon_ar.png`, ...) and loaded at runtime with `Resources.Load`. `Assets/Sprite/Game UI mockups for Unity/` stays untouched reference material | active | 2026-08-18 | The HUD is built in code, not from a prefab, so there is no inspector reference to carry a sprite; `Resources` is the only path that does not need one. Moving the -3x files out of the kit folder instead of copying them would strip the handoff of the density it tells you to ship, and the duplicates cost nothing in the build because the kit copies are unreferenced |
 | AD-025 | The HUD is authored into the scene: `HUD/FormifyCanvas` and everything under it are real GameObjects carrying real `Image`, `Button` and `TextMeshProUGUI` components, put there by `Formify/Bake HUD Into Scene` (`HudSceneBaker`) and wired into `RoomBootstrap.hud`. Play builds no HUD any more - `Compose` hands the `HudRoot` in the scene the model, the modes and the handlers, and every view reference is serialized with the scene. `HudRoot.Build` stays the single description of the tree: the bake runs it, and a scene holding no HUD (a bare test scene) falls back to it, so baked and built are the same tree by construction. The room stays generated (ROOM-01); only the HUD is authored | active | 2026-08-18 | Owner decision 2026-08-18. A HUD that exists only inside play cannot be selected, nudged, restyled or reviewed in the editor: every change had to be coded and re-run to be seen, and the scene itself showed nothing but a camera. The cost is that the scene copy does not follow code - a kit change means re-baking - which is why one construction path is kept and the bake runs it, instead of the tree being hand-assembled in the inspector where it would drift from `HudTheme` |
 | AD-026 | One selection, two kinds. `RoomModel` holds `SelectedSurfaceId` and `SelectedWindowId`, and setting either clears the other, so a surface row and a window row can never both read as selected. Removing the selected window clears the selection before `WindowRemoved` is raised, so no listener sees a selection pointing at a window that is already gone | active | 2026-08-18 | LIST-03 puts windows in the same list as the surfaces they belong to, and once both are rows, "the selected row" has to mean one row. The alternative - a second, independent selection - would have every view that paints a selection invent its own tie-break, and the readout would have to guess which one to report |
+| AD-027 | Placing a window ends window mode: a successful `TryAddWindow` returns the mode to Orbit, so one drag cuts one opening. A rejected rectangle stays in the mode. The button (AD-021) remains the way out when no window was placed | active | 2026-08-18 | Owner UX call 2026-08-18, and it also fixed a defect: the surfaces list is given a tap gate that blocks selection for the whole of WindowDraw (AD-015), so the mode outliving the placement left the row the new window had just added to the list refusing every tap until the button was pressed - reported as "the windows in the list do not select" |
 
 ## Handoff
 
@@ -58,16 +59,15 @@ and points the scene bootstrap at it. The short-lived `HudScenePreview` (a baked
 is gone - it existed only because the live HUD was still built in code. Walls and windows are unchanged: still
 generated (ROOM-01, WIN-02).
 
-**Phase 8 (this session, B1):** windows are rows in the surfaces list (LIST-03, T34) - nested under the wall
+**Phase 8 (this session, B1 + B3):** windows are rows in the surfaces list (LIST-03, T34) - nested under the wall
 they were cut into, foldable per wall, and selectable. The model gained a window selection that excludes the
-surface one (AD-026), which is also half of B2. The readout follows it.
+surface one (AD-026), which is also half of B2. The readout follows it. Two things came back from the owner trying it: the wall row itself now folds its windows (the 6 px dot became an indicator, LIST-03 AC6), and placing a window leaves window mode (AD-027) - which was also why window rows would not select, because the AD-015 tap gate blocks the list for as long as WindowDraw lasts.
 
 **Next step:** the T33 and T34 gates are unrun - the owner asked for the test runner to be held, and the suites gained 25 cases
 across `HudSceneBakerTests`, `RoomModelWindowSelectionTests` and `SurfaceListWindowRowsTests`. After that, what is
 left of the backlog in `tasks.md`: B2 (the 3D half - tapping the window itself should select it, and the room view
-has no feedback for a selected window), B3 (window mode switching itself off after each placement, which moves the
-exit rule AD-021 owns), B4 (a drag starting inside a window still orbiting), B5 (a 2D switch that pulls further
-back and animates both ways) and B6 (a bigger, more rectangular room). None of the five is specified yet. Human UAT is still open: the three checks in `validation.md`
+has no feedback for a selected window), B4 (a drag starting inside a window still orbiting), B5 (a 2D switch that pulls further
+back and animates both ways) and B6 (a bigger, more rectangular room). None of the four is specified yet. Human UAT is still open: the three checks in `validation.md`
 section 7 (outline appearance, AR pose under XR Simulation, the iOS build-target switch) and now the kit's
 appearance on a real landscape device - every screenshot so far was taken at the Editor's Game view aspect
 (1557x1222), which is not the shape the HUD is designed for. `.specs/features/hud-art-kit/context.md` lists the

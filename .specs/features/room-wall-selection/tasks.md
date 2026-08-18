@@ -1023,7 +1023,9 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 
 **Commit**: `[feat] list windows under their wall`
 
-**Not in this task**: a tap on the window itself in 3D still opens the delete affordance and does not select (that is B2's remaining half), and nothing about window mode's lifetime changed (B3).
+**Follow-up, same day** (owner tried it): the wall row itself folds its windows - the 6 px dot is an indicator now, not a control, because it carved a dead spot out of the row - and B3 landed with it as AD-027, placing a window returns to Orbit. That last one was a defect as much as a feature: the list is handed a tap gate that blocks selection for the whole of WindowDraw (AD-015), so a mode that outlived the placement left the freshly added window row refusing every tap. The panel also grows with its rows now, capped above the readout; the kit-sized 250 x 312 was full at six surfaces and the first window spilled out of it.
+
+**Not in this task**: a tap on the window itself in 3D still opens the delete affordance and does not select (that is B2's remaining half).
 
 ---
 
@@ -1219,7 +1221,7 @@ still intent, not tasks - no acceptance criteria yet, and two of them move rules
 | - | --------- | ------- | ---------------------------- |
 | B1 | A window created on a wall appears in the surfaces list as a child row under that wall; the wall row can collapse its windows, and a window can be selected from the list | LIST-01, LIST-02, `SurfaceListPanel`, `SurfaceRow` | **Done - T34**, specified as LIST-03. Both row kinds are the same `SurfaceRow`; per-wall collapse sits beside the panel-wide one |
 | B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | **Half done - T34**: the model now carries `SelectedWindowId` and the two selections exclude each other (AD-026), and the list honours it. What is left is the 3D side - a tap on the window itself still only opens the delete affordance - plus whatever selected-window feedback the room view should show (OUT-01 draws outlines for surfaces only) |
-| B3 | Window mode switches itself off after each window is placed | WIN-01 AC1, AD-019, AD-021 | AD-021 made the button the visible exit from window mode; an automatic exit changes what the state dot and the enabled set mean between placements |
+| B3 | Window mode switches itself off after each window is placed | WIN-01 AC1, AD-019, AD-021 | **Done - T34 follow-up**, recorded as AD-027. The button stays the exit when nothing was placed; a rejected rectangle keeps the mode |
 | B4 | A drag that starts inside an existing window still orbits the camera | SEL-03, WIN-02, `WindowDrawController`, `RoomBootstrap.OnDragDelta` | Windows already route drags for their own gesture; which mode owns a drag that begins over a window has to be stated per mode (Orbit vs WindowDraw) |
 | B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | The framing is a fit-to-room today (TOP-01) - "further back" needs a number or a margin factor. The animation needs a duration and what happens to input while it runs |
 | B6 | The room is bigger and more rectangular | ROOM-01 assumptions, `RoomBootstrap.roomSize` | Serialized field, so the change itself is a number - but it moves the camera framing, the 2D fit and the window size limits that were tuned against 6 x 4 m |
