@@ -85,6 +85,30 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(RoomCentre.z, position.z, 0.0001f);
         }
 
+        /// <summary>B5 — TopDownController holds this while it flies the camera between the 3D and plan poses.</summary>
+        [UnityTest]
+        public IEnumerator InputLocked_drops_drags_and_lets_them_through_again_when_cleared()
+        {
+            yield return null;
+
+            _controller.OnDrag(HorizontalDrag(30f));
+            Assert.AreEqual(30f, _controller.Yaw, 0.01f);
+            Quaternion locked = _rig.transform.rotation;
+
+            _controller.InputLocked = true;
+            _controller.OnDrag(HorizontalDrag(90f));
+            _controller.OnDrag(VerticalDrag(45f));
+
+            // Dropped, not queued: the flight owns the transform while it is in the air.
+            Assert.AreEqual(30f, _controller.Yaw, 0.01f);
+            Assert.AreEqual(0f, _controller.Pitch, 0.01f);
+            Assert.Less(Quaternion.Angle(locked, _rig.transform.rotation), 0.01f);
+
+            _controller.InputLocked = false;
+            _controller.OnDrag(HorizontalDrag(90f));
+            Assert.AreEqual(120f, _controller.Yaw, 0.01f);
+        }
+
         [UnityTest]
         public IEnumerator SetRotation_applies_exactly_and_still_clamps_pitch()
         {

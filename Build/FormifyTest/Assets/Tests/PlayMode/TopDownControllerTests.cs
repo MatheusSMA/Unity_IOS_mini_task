@@ -25,6 +25,13 @@ namespace Formify.Tests.PlayMode
         private const float MinZoom = 0.5f;
         private const float MaxZoom = 2.0f;
 
+        /// <summary>B5 serialized defaults: the plan opens 1.25x the bare fit, 5 m above the ceiling.</summary>
+        private const float PlanZoomOut = 1.25f;
+        private const float HeightAboveCeiling = 5f;
+
+        /// <summary>OrbitCameraController's serialized eye height — where the exit flight lands.</summary>
+        private const float EyeHeight = 1.6f;
+
         /// <summary>Not the Unity default (60), so "restored" cannot pass by accident.</summary>
         private const float OriginalFieldOfView = 55f;
 
@@ -113,7 +120,7 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(WallId, _model.SelectedSurfaceId, "a surface is selected before the switch");
 
             Assert.IsTrue(_modes.TrySet(Mode.TopDown));
-            yield return null;
+            yield return Settle();
 
             Assert.IsTrue(_controller.IsTopDown);
 
@@ -123,7 +130,7 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(expectedFit, _controller.FitOrthographicSize, Tolerance);
 
             Assert.IsTrue(_camera.orthographic);
-            Assert.AreEqual(_controller.FitOrthographicSize, _camera.orthographicSize, Tolerance);
+            Assert.AreEqual(_controller.PlanOrthographicSize, _camera.orthographicSize, Tolerance);
 
             // Straight down from above the room centre.
             Assert.AreEqual(0f, _camera.transform.position.x, Tolerance);
@@ -164,10 +171,10 @@ namespace Formify.Tests.PlayMode
         public IEnumerator Pinch_ClampsToHalfAndDoubleTheFitSize()
         {
             Assert.IsTrue(_modes.TrySet(Mode.TopDown));
-            yield return null;
+            yield return Settle();
 
             float fit = _controller.FitOrthographicSize;
-            Assert.AreEqual(fit, _camera.orthographicSize, Tolerance, "the plan opens at fit size");
+            Assert.AreEqual(fit * PlanZoomOut, _camera.orthographicSize, Tolerance, "the plan opens further back (B5)");
 
             // Positive delta = zoom IN = smaller orthographic size.
             for (int i = 0; i < 10; i++) _controller.ApplyPinch(0.5f);
@@ -203,13 +210,13 @@ namespace Formify.Tests.PlayMode
         public IEnumerator ExitingTo3D_RestoresTheCeiling_TheCamera_AndTheRig()
         {
             Assert.IsTrue(_modes.TrySet(Mode.TopDown));
-            yield return null;
+            yield return Settle();
 
             Assert.IsTrue(_camera.orthographic, "precondition: the plan owned the camera");
             Assert.IsFalse(_ceilingRenderer.enabled);
 
             Assert.IsTrue(_modes.TrySet(Mode.Orbit));
-            yield return null;
+            yield return Settle();
 
             Assert.IsFalse(_controller.IsTopDown);
             Assert.IsTrue(_ceilingRenderer.enabled, "ceiling MeshRenderer back (TOP AC5)");
@@ -223,6 +230,188 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(0f, _orbit.transform.position.x, Tolerance);
             Assert.AreEqual(1.6f, _orbit.transform.position.y, Tolerance);
             Assert.AreEqual(0f, _orbit.transform.position.z, Tolerance);
+        }
+
+        // ---- B5: the plan sits further back, and both directions fly there ----
+
+        [UnityTest]
+        public IEnumerator B5_ThePlanOpensFurtherBackThanTheBareFit()
+        {
+            float fit = _controller.FitOrthographicSize;
+
+            Assert.AreEqual(fit * PlanZoomOut, _controller.PlanOrthographicSize, Tolerance);
+            Assert.Greater(_controller.PlanOrthographicSize, fit, "B5: the room is not pressed against the edge");
+            Assert.LessOrEqual(_controller.PlanOrthographicSize, MaxZoom * fit, "still inside the pinch band (AD-016)");
+            Assert.GreaterOrEqual(_controller.PlanOrthographicSize, MinZoom * fit);
+
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+
+            Assert.AreEqual(_controller.PlanOrthographicSize, _camera.orthographicSize, Tolerance);
+            // Aspect 1, so the half-width shown IS the orthographic size: there is real air past the wall.
+            Assert.Greater(_camera.orthographicSize * _camera.aspect, RoomWidth * 0.5f,
+                           "the widest wall clears the viewport with margin");
+        }
+
+        [UnityTest]
+        public IEnumerator B5_Entering2D_FliesInsteadOfSnapping_WhileTheModeFlipsAtOnce()
+        {
+            yield return null;
+
+            Vector3 start = _camera.transform.position;
+            Vector3 plan = new Vector3(0f, RoomHeight + HeightAboveCeiling, 0f);
+            _model.Select(WallId);
+
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+
+            // Everything riding ModeChanged is instant — only the transform lags (B5).
+            Assert.IsTrue(_controller.IsTopDown, "the mode flipped on the click");
+            Assert.IsFalse(_ceilingRenderer.enabled, "the ceiling went with the mode, not with the camera");
+            Assert.IsFalse(_ceilingCollider.enabled);
+            Assert.IsNull(_model.SelectedSurfaceId, "TOP AC3 still fires at the same moment");
+            Assert.AreEqual(0f, Vector3.Distance(start, _camera.transform.position), Tolerance,
+                            "the switch itself moves the camera nowhere");
+
+            yield return null;
+
+            Assert.IsTrue(_controller.IsTransitioning);
+            Assert.Greater(_camera.transform.position.y, start.y, "one frame in, it has left the eye height");
+            Assert.Less(_camera.transform.position.y, plan.y, "and it has not arrived either");
+        }
+
+        [UnityTest]
+        public IEnumerator B5_TheFlightLandsExactlyOnTheOldSnapPose()
+        {
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+
+            // Identical to what EnterTopDown used to jump to: room centre, heightAboveCeiling over the slab.
+            Vector3 plan = new Vector3(0f, RoomHeight + HeightAboveCeiling, 0f);
+            Assert.AreEqual(0f, Vector3.Distance(plan, _camera.transform.position), Tolerance);
+            Assert.Less(Quaternion.Angle(_camera.transform.rotation, Quaternion.Euler(90f, 0f, 0f)), 0.01f,
+                        "straight down, with no slerp residue");
+            Assert.IsTrue(_camera.orthographic, "the projection arrives with the pose");
+            Assert.AreEqual(_controller.PlanOrthographicSize, _camera.orthographicSize, Tolerance);
+        }
+
+        [UnityTest]
+        public IEnumerator B5_SwitchingBackMidFlight_RetargetsFromMidAir()
+        {
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return null;
+            yield return null;
+            Assert.IsTrue(_controller.IsTransitioning, "precondition: still climbing");
+
+            Vector3 midAir = _camera.transform.position;
+            Assert.Greater(midAir.y, EyeHeight, "precondition: it left the eye height");
+
+            Assert.IsTrue(_modes.TrySet(Mode.Orbit));
+            Assert.AreEqual(0f, Vector3.Distance(midAir, _camera.transform.position), Tolerance,
+                            "the reversal starts from where the camera is, not from the pose it set out from");
+
+            yield return null;
+            Assert.IsTrue(_controller.IsTransitioning, "it flies back down");
+
+            float step = Vector3.Distance(midAir, _camera.transform.position);
+            float remaining = Vector3.Distance(midAir, new Vector3(0f, EyeHeight, 0f));
+            Assert.Greater(step, 0f, "it is moving");
+            Assert.Less(step, remaining * 0.5f, "one frame is a step, not a snap");
+
+            yield return Settle();
+
+            Assert.AreEqual(EyeHeight, _camera.transform.position.y, Tolerance, "it lands on the orbit pose");
+            Assert.IsFalse(_camera.orthographic, "and back in perspective");
+            Assert.AreEqual(OriginalFieldOfView, _camera.fieldOfView, Tolerance);
+        }
+
+        [UnityTest]
+        public IEnumerator B5_ReEnteringMidExitFlight_StillRestoresTheReal3DPose()
+        {
+            _orbit.OnDrag(new Vector2(150f, 0f));   // a 3D pose worth restoring: yaw 30
+            Quaternion pose3D = _camera.transform.rotation;
+
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+
+            Assert.IsTrue(_modes.TrySet(Mode.Orbit));
+            yield return null;
+            Assert.IsTrue(_controller.IsTransitioning, "precondition: falling back into the room");
+
+            // Back into 2D mid-fall and out again: the mid-air pose must never be recorded as the 3D pose.
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+            Assert.IsTrue(_modes.TrySet(Mode.Orbit));
+            yield return Settle();
+
+            Assert.Less(Quaternion.Angle(pose3D, _camera.transform.rotation), 0.01f, "the real 3D look direction");
+            Assert.AreEqual(EyeHeight, _camera.transform.position.y, Tolerance);
+            Assert.IsFalse(_camera.orthographic);
+            Assert.AreEqual(OriginalFieldOfView, _camera.fieldOfView, Tolerance);
+        }
+
+        [UnityTest]
+        public IEnumerator B5_PinchDuringTheFlight_ChangesNothing()
+        {
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return null;
+            Assert.IsTrue(_controller.IsTransitioning, "precondition: in the air");
+
+            float sizeInFlight = _camera.orthographicSize;
+            _controller.ApplyPinch(0.5f);
+            _controller.ApplyPinch(-0.5f);
+
+            Assert.AreEqual(sizeInFlight, _camera.orthographicSize, Tolerance, "pinch is dropped in the air");
+
+            yield return Settle();
+
+            Assert.AreEqual(_controller.PlanOrthographicSize, _camera.orthographicSize, Tolerance,
+                            "the plan still opens at its own size");
+
+            // Control: the very same pinch bites once it has landed.
+            _controller.ApplyPinch(0.5f);
+            Assert.Less(_camera.orthographicSize, _controller.PlanOrthographicSize);
+        }
+
+        [UnityTest]
+        public IEnumerator B5_DragDuringTheFlight_DoesNotTearThePose()
+        {
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+
+            // Leaving 2D is the dangerous direction: the mode is Orbit again, so RoomBootstrap routes drags
+            // straight at the rig while the camera is still in the air.
+            Assert.IsTrue(_modes.TrySet(Mode.Orbit));
+            yield return null;
+            Assert.IsTrue(_controller.IsTransitioning, "precondition: in the air");
+
+            Vector3 position = _camera.transform.position;
+            Quaternion rotation = _camera.transform.rotation;
+
+            _orbit.OnDrag(new Vector2(500f, 200f));
+
+            Assert.AreEqual(0f, _orbit.Yaw, Tolerance, "the drag is dropped, not queued");
+            Assert.AreEqual(0f, _orbit.Pitch, Tolerance);
+            Assert.AreEqual(0f, Vector3.Distance(position, _camera.transform.position), Tolerance);
+            Assert.Less(Quaternion.Angle(rotation, _camera.transform.rotation), 0.01f, "the pose did not tear");
+
+            yield return Settle();
+
+            Assert.AreEqual(EyeHeight, _camera.transform.position.y, Tolerance);
+
+            // Control: the same drag turns the rig once the flight is over.
+            _orbit.OnDrag(new Vector2(500f, 0f));
+            Assert.AreEqual(100f, _orbit.Yaw, Tolerance, "the rig takes input again on landing");
+        }
+
+        /// <summary>
+        /// Steps frames until the camera lands. Frame-driven, not wall-clock: the loop ends on
+        /// <see cref="TopDownController.IsTransitioning"/> and the cap only stops a broken flight hanging the run.
+        /// </summary>
+        private IEnumerator Settle()
+        {
+            for (int i = 0; i < 600 && _controller.IsTransitioning; i++) yield return null;
+
+            Assert.IsFalse(_controller.IsTransitioning, "the flight lands");
         }
 
         private static Vector2[] Footprint()

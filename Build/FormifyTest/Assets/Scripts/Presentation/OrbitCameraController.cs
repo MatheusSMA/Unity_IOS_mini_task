@@ -23,6 +23,15 @@ namespace Formify.Presentation
 
         public float Pitch { get; private set; }
 
+        /// <summary>
+        /// B5 — set while TopDownController is flying the camera between the 3D and plan poses. A drag arriving
+        /// then is DROPPED, not queued: the mode has already flipped, so RoomBootstrap routes drags here again
+        /// the moment 2D is left, and letting one through would fight the flight for the same transform.
+        /// The AR handoff (<see cref="SetRotation"/>) is not gated — it fires once, on the mode change itself,
+        /// before any flight starts.
+        /// </summary>
+        public bool InputLocked { get; set; }
+
         private void Start()
         {
             if (roomBootstrap != null) ConfigureRoom(roomBootstrap.RoomCentre, roomBootstrap.RoomBounds);
@@ -38,6 +47,8 @@ namespace Formify.Presentation
 
         public void OnDrag(Vector2 delta)
         {
+            if (InputLocked) return;
+
             Yaw = Mathf.Repeat(Yaw + delta.x * degreesPerPixel, 360f);
             Pitch = Mathf.Clamp(Pitch + delta.y * degreesPerPixel, minPitch, maxPitch);
             ApplyRotation();
