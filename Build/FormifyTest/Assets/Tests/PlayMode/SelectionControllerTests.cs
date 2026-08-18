@@ -133,6 +133,25 @@ namespace Formify.Tests.PlayMode
             yield break;
         }
 
+        /// <summary>AR-01 AC5 — the mirror image of the WindowDraw case above: Ar owns the camera pose, not the
+        /// tap, so a tap in Ar moves the selection exactly like it does in Orbit.</summary>
+        [UnityTest]
+        public IEnumerator Ar_mode_keeps_taps_selecting()
+        {
+            _controller.OnTap(ScreenPositionOf(WallACentre));
+            Assert.IsTrue(_modes.TrySet(Mode.Ar), "Ar is legal from Orbit (AD-013)");
+            Assert.AreEqual(Mode.Ar, _modes.Current);
+            _events = 0;
+
+            _controller.OnTap(ScreenPositionOf(WallBCentre));
+
+            Assert.AreEqual(_wallB.id, _model.SelectedSurfaceId, "the tap moved the selection while in AR");
+            Assert.AreEqual(1, _events);
+            Assert.AreEqual(_wallA.id, _previous);
+            Assert.AreEqual(_wallB.id, _current);
+            yield break;
+        }
+
         [UnityTest]
         public IEnumerator A_window_target_takes_the_tap_and_the_selection_stands()
         {

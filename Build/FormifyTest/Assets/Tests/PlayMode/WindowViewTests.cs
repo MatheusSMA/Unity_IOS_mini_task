@@ -30,6 +30,7 @@ namespace Formify.Tests.PlayMode
         private GameObject _factoryGo;
         private WindowViewFactory _factory;
         private Canvas _canvas;
+        private Camera _camera;
 
         [SetUp]
         public void SetUp()
@@ -54,6 +55,10 @@ namespace Formify.Tests.PlayMode
             // The wall spans the XY plane at z = 0 with its normal along +Z, so the room side is +Z.
             _cameraGo.transform.position = new Vector3(WallWidth * 0.5f, 1.6f, 3f);
             _cameraGo.transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
+            _camera = _cameraGo.GetComponent<Camera>();
+            // Fixed viewport: the corner projection must not depend on the headless screen size.
+            _camera.pixelRect = new Rect(0f, 0f, 900f, 600f);
+            _camera.aspect = 1.5f;
 
             _canvasGo = new GameObject("TestCanvas", typeof(RectTransform));
             _canvas = _canvasGo.AddComponent<Canvas>();
@@ -87,6 +92,7 @@ namespace Formify.Tests.PlayMode
             _cameraGo = null;
             _factory = null;
             _canvas = null;
+            _camera = null;
             _model = null;
             _surface = null;
             _spec = null;
@@ -173,6 +179,39 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(WallId, before, "the wall was selected before the tap");
             Assert.AreEqual(before, _model.SelectedSurfaceId, "selection unchanged after the tap");
             Assert.AreEqual(0, selectionEvents, "no SelectionChanged was raised");
+        }
+
+        /// <summary>Screen point of one opening corner, in surface-local metres.</summary>
+        private Vector2 ScreenCorner(float localX, float localY)
+        {
+            Vector3 screen = _camera.WorldToScreenPoint(_surface.LocalToWorld(localX, localY));
+            return new Vector2(screen.x, screen.y);
+        }
+
+        /// <summary>
+        /// WIN-04 AC2 — "anchored to the opening's top-right corner", asserted as a position. The X is a
+        /// screen-space widget on an overlay canvas, so its transform position IS its screen point.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DeleteButton_IsAnchoredToTheOpeningsTopRightCorner()
+        {
+            yield return null;
+
+            WindowView view = SingleView();
+            view.OnTapped();
+            yield return null;   // LateUpdate re-projects the corner
+
+            Vector3 position = view.DeleteButton.transform.position;
+            Vector2 actual = new Vector2(position.x, position.y);
+
+            Vector2 topRight = ScreenCorner(WindowRect.XMax, WindowRect.YMax);
+            Assert.AreEqual(topRight.x, actual.x, 0.5f, "AC2: the X sits on the opening's top-right corner (x)");
+            Assert.AreEqual(topRight.y, actual.y, 0.5f, "AC2: the X sits on the opening's top-right corner (y)");
+
+            // The other three corners are ~200 px away each, so no corner mix-up can pass the assertion above.
+            Assert.Greater(Vector2.Distance(ScreenCorner(WindowRect.x, WindowRect.y), actual), 50f, "not bottom-left");
+            Assert.Greater(Vector2.Distance(ScreenCorner(WindowRect.XMax, WindowRect.y), actual), 50f, "not bottom-right");
+            Assert.Greater(Vector2.Distance(ScreenCorner(WindowRect.x, WindowRect.YMax), actual), 50f, "not top-left");
         }
 
         [UnityTest]

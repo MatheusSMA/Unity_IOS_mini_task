@@ -18,6 +18,9 @@ namespace Formify.Tests.PlayMode
         // Two walls on the z = 2 plane, seen by a camera at the origin looking down +Z.
         private static readonly Vector3 WallACentre = new Vector3(-1.75f, 1.4f, 2f);
         private static readonly Vector3 WallBCentre = new Vector3(1.75f, 1.4f, 2f);
+        // Wall C sits on the z = 4 plane, centred exactly where the tap ray at Wall A's centre would carry on
+        // to if it went through Wall A. Only built by the mask test.
+        private static readonly Vector3 WallCOrigin = new Vector3(-2.25f, 0f, 4f);
         private const float WallWidth = 2.5f;
         private const float WallHeight = 2.8f;
         private const float WallThickness = 0.15f;
@@ -30,6 +33,7 @@ namespace Formify.Tests.PlayMode
         private SelectionController _controller;
         private SurfaceDefinition _wallA;
         private SurfaceDefinition _wallB;
+        private SurfaceDefinition _wallC;
         private SurfaceView _viewA;
         private SurfaceView _viewB;
         private int _outlineLayer;
@@ -42,7 +46,8 @@ namespace Formify.Tests.PlayMode
 
             _wallA = Wall(0, "Wall A", new Vector3(-0.5f, 0f, 2f));
             _wallB = Wall(1, "Wall B", new Vector3(3f, 0f, 2f));
-            _model = new RoomModel(new[] { _wallA, _wallB });
+            _wallC = Wall(2, "Wall C", WallCOrigin);
+            _model = new RoomModel(new[] { _wallA, _wallB, _wallC });
             _modes = new ModeManager(IsWallSelected);
 
             GameObject cameraObject = Spawn("Camera");
@@ -121,6 +126,46 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(_wallA.id, _model.SelectedSurfaceId);
             Assert.AreEqual(0, _events);
             Assert.AreEqual(_outlineLayer, _viewA.gameObject.layer);
+        }
+
+        /// <summary>
+        /// OUT-01 AC2 proper. The default mask is ~0, so the OR in SelectionController.ResolveMask is invisible
+        /// there — every layer is already in it. Here the mask is narrowed to the plain surface layer ONLY, and
+        /// a second wall is parked directly behind Wall A on the same ray: with the OR the ray stops on the
+        /// selected Wall A, without it the ray goes straight through A (now on the excluded outline layer) and
+        /// lands on Wall C, moving the selection.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator A_mask_without_the_outline_layer_still_stops_on_the_selected_surface()
+        {
+            Assert.AreNotEqual(-1, _outlineLayer,
+                "The 'SelectedSurface' layer is missing from the Tag Manager - run OutlineSetup.Configure.");
+
+            SurfaceView viewC = CreateWall(_wallC);
+            yield return new WaitForFixedUpdate();
+
+            int plainLayer = _viewA.gameObject.layer;
+            Assert.AreEqual(plainLayer, viewC.gameObject.layer, "both walls start on the same plain layer");
+            Assert.AreNotEqual(_outlineLayer, plainLayer, "and that layer is not the outline one");
+
+            // The narrow mask a project with a real layer budget would ship: surfaces only, no outline layer.
+            _controller.RaycastMask = 1 << plainLayer;
+
+            Vector2 tap = ScreenPositionOf(WallACentre);
+            _controller.OnTap(tap);
+
+            Assert.AreEqual(_wallA.id, _model.SelectedSurfaceId, "the first tap lands on A while A is still plain");
+            Assert.AreEqual(_outlineLayer, _viewA.gameObject.layer, "and the selection moved A onto the outline layer");
+
+            _events = 0;
+            yield return new WaitForFixedUpdate();
+
+            _controller.OnTap(tap);
+
+            Assert.AreEqual(_wallA.id, _model.SelectedSurfaceId, "the ray still stops on A, so the selection stands");
+            Assert.AreEqual(0, _events, "nothing moved the selection");
+            Assert.IsFalse(viewC.IsTinted, "the wall behind A was never selected");
+            Assert.AreEqual(plainLayer, viewC.gameObject.layer, "and never took the outline layer either");
         }
 
         private void OnSelectionChanged(int? previous, int? current) => _events++;

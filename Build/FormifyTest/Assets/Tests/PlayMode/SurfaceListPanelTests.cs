@@ -178,13 +178,15 @@ namespace Formify.Tests.PlayMode
             _model.Select(WallA);
             AssertOnlySelected(WallA);
 
-            _panel.ToggleCollapsed();
+            Button collapseControl = _panel.Canvas.GetComponentInChildren<Button>(true);
+            Assert.IsNotNull(collapseControl, "the collapse control exists");
+            Assert.IsFalse(_panel.IsCollapsed, "the panel starts expanded");
+
+            // LIST-02 AC3: through the Button, so the onClick wiring is under test too.
+            collapseControl.onClick.Invoke();
             yield return null;
 
             Assert.IsTrue(_panel.IsCollapsed);
-
-            Button collapseControl = _panel.Canvas.GetComponentInChildren<Button>(true);
-            Assert.IsNotNull(collapseControl, "the collapse control exists");
             Assert.IsTrue(collapseControl.gameObject.activeInHierarchy, "collapse control stays visible (LIST AC4)");
 
             _model.Select(WallC);
@@ -194,10 +196,10 @@ namespace Formify.Tests.PlayMode
             Assert.IsTrue(_panel.IsRowSelected(WallC), "row updated while collapsed");
             Assert.IsFalse(_panel.IsRowSelected(WallA), "previous row cleared while collapsed");
 
-            _panel.ToggleCollapsed();
+            collapseControl.onClick.Invoke();
             yield return null;
 
-            Assert.IsFalse(_panel.IsCollapsed);
+            Assert.IsFalse(_panel.IsCollapsed, "AC3: a second click expands it again");
             Assert.IsTrue(collapseControl.gameObject.activeInHierarchy);
             AssertOnlySelected(WallC);
         }

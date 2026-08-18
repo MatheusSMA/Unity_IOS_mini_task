@@ -31,6 +31,21 @@ namespace Formify.Presentation
         private ModeManager _modes;
         private int _mask;
 
+        /// <summary>
+        /// The layers a tap ray may hit, before <see cref="ResolveMask"/> ORs the outline layer in. Settable —
+        /// the serialized field stays the scene default — so a test can hand over a mask that deliberately
+        /// excludes "SelectedSurface" and prove that OR is what keeps the selected surface hittable (OUT-01 AC2).
+        /// </summary>
+        public LayerMask RaycastMask
+        {
+            get => raycastMask;
+            set
+            {
+                raycastMask = value;
+                _mask = ResolveMask();
+            }
+        }
+
         private void Awake() => _mask = ResolveMask();
 
         /// <summary>Wiring without prefabs, for RoomBootstrap and tests. Addition to the contract.</summary>
