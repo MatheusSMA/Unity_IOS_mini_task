@@ -27,6 +27,9 @@ namespace Formify.Tests.PlayMode
 
         /// <summary>B5 serialized defaults: the plan opens 1.25x the bare fit, 5 m above the ceiling.</summary>
         private const float PlanZoomOut = 1.25f;
+
+        /// <summary>TopDownController s serialized planSize - the opening the owner set by eye.</summary>
+        private const float PlanSize = 5.2f;
         private const float HeightAboveCeiling = 5f;
 
         /// <summary>OrbitCameraController's serialized eye height — where the exit flight lands.</summary>
@@ -197,7 +200,9 @@ namespace Formify.Tests.PlayMode
             yield return Settle();
 
             float fit = _controller.FitOrthographicSize;
-            Assert.AreEqual(fit * PlanZoomOut, _camera.orthographicSize, Tolerance, "the plan opens further back (B5)");
+            // planSize wins unless the room is too big for it, and the pinch band has the last word (AD-016).
+            float opening = Mathf.Clamp(Mathf.Max(PlanSize, fit * PlanZoomOut), MinZoom * fit, MaxZoom * fit);
+            Assert.AreEqual(opening, _camera.orthographicSize, Tolerance, "the plan opens further back (B5)");
 
             // Positive delta = zoom IN = smaller orthographic size.
             for (int i = 0; i < 10; i++) _controller.ApplyPinch(0.5f);
@@ -262,7 +267,8 @@ namespace Formify.Tests.PlayMode
         {
             float fit = _controller.FitOrthographicSize;
 
-            Assert.AreEqual(fit * PlanZoomOut, _controller.PlanOrthographicSize, Tolerance);
+            float expected = Mathf.Clamp(Mathf.Max(PlanSize, fit * PlanZoomOut), MinZoom * fit, MaxZoom * fit);
+            Assert.AreEqual(expected, _controller.PlanOrthographicSize, Tolerance);
             Assert.Greater(_controller.PlanOrthographicSize, fit, "B5: the room is not pressed against the edge");
             Assert.LessOrEqual(_controller.PlanOrthographicSize, MaxZoom * fit, "still inside the pinch band (AD-016)");
             Assert.GreaterOrEqual(_controller.PlanOrthographicSize, MinZoom * fit);

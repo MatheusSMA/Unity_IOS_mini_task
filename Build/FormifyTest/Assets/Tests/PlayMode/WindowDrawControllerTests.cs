@@ -252,6 +252,9 @@ namespace Formify.Tests.PlayMode
             Assert.IsTrue(wallView.Rebuild());
             yield return new WaitForFixedUpdate();
 
+            // AD-027: the placement dropped the mode back to Orbit, so the second attempt has to re-enter.
+            EnterWindowDraw();
+
             // Starts on solid wall right of the opening, ends inside it -> rect (1.5, 1.4) .. (2.2, 2.0).
             controller.OnDragStart(ScreenOf(wall, 2.2f, 1.4f));
             Assert.IsTrue(controller.IsDrawing, "The second drag starts on solid wall, so it must begin.");
