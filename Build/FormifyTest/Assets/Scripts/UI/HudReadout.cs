@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using Formify.Domain;
 using TMPro;
@@ -84,6 +85,7 @@ namespace Formify.Presentation
             if (_model != null)
             {
                 _model.SelectionChanged += OnSelectionChanged;
+                _model.WindowSelectionChanged += OnSelectionChanged;
                 _model.WindowAdded += OnWindowChanged;
                 _model.WindowRemoved += OnWindowChanged;
             }
@@ -97,6 +99,16 @@ namespace Formify.Presentation
 
         private void Refresh()
         {
+            if (_model != null && _model.SelectedWindowId.HasValue)
+            {
+                WindowSpec window = _model.GetWindow(_model.SelectedWindowId.Value);
+                if (window != null)
+                {
+                    ShowWindow(window);
+                    return;
+                }
+            }
+
             SurfaceDefinition selected = null;
             if (_model != null && _model.SelectedSurfaceId.HasValue)
                 selected = _model.GetSurface(_model.SelectedSurfaceId.Value);
@@ -122,6 +134,30 @@ namespace Formify.Presentation
                 : windows == 1 ? "window placed"
                 : "windows placed");
             ShowChip(windows > 0, windows);
+        }
+
+        /// <summary>
+        /// A selected window reads the way a surface does — what it is, how big it is, and where it sits — so
+        /// selecting one from the list never leaves the readout saying "NO SURFACE" (AD-026). The chip counts
+        /// windows on a surface and means nothing here, so it goes away.
+        /// </summary>
+        private void ShowWindow(WindowSpec window)
+        {
+            SurfaceDefinition wall = _model.GetSurface(window.surfaceId);
+
+            int ordinal = 1;
+            IReadOnlyList<WindowSpec> windows = _model.GetWindows(window.surfaceId);
+            for (int i = 0; i < windows.Count; i++)
+            {
+                if (windows[i] != null && windows[i].id == window.id) ordinal = i + 1;
+            }
+
+            SetText(caption, "WINDOW " + ordinal);
+            SetText(dimensions,
+                window.rect.width.ToString("0.00", CultureInfo.InvariantCulture) + "  ×  " +
+                window.rect.height.ToString("0.00", CultureInfo.InvariantCulture) + " <size=11>m</size>");
+            SetText(helper, wall != null ? "on " + wall.name.ToLowerInvariant() : "on a wall");
+            ShowChip(false, 0);
         }
 
         /// <summary>The kit puts the count in a green chip; with none placed the line reads as plain helper text.</summary>
@@ -179,6 +215,7 @@ namespace Formify.Presentation
             if (_model == null) return;
 
             _model.SelectionChanged -= OnSelectionChanged;
+            _model.WindowSelectionChanged -= OnSelectionChanged;
             _model.WindowAdded -= OnWindowChanged;
             _model.WindowRemoved -= OnWindowChanged;
         }
