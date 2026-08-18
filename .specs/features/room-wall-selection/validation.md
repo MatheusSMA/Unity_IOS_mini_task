@@ -328,3 +328,70 @@ no test drives a physical mouse device.
   enabled set is `Orbit or WindowDraw` so the exit branch is reachable (AD-021), and the fixture
   asserts the state dot — which returned WIN-01 to `Verified`. Not a test failure: every WIN-01
   behaviour this report asserted still holds against the rule that was in force when it ran.
+
+---
+
+## 9 · Phase 6 verification (HUD-01, 2026-08-18)
+
+**Verdict: PASS.** Author-run, not an independent fresh-eyes pass — sections 1-8 above were produced by five
+independent verifiers against Phases 1-5; this section covers only what Phase 6 added, and it is honest about
+being written by the author of that change.
+
+### Gate
+
+| Suite | Result | Evidence |
+| ----- | ------ | -------- |
+| EditMode | 67/67 | Unity `run_tests`, job `252ace88`, 2026-08-18 |
+| PlayMode | 92/92 | Unity `run_tests`, job `69908969`, 2026-08-18 (87 before Phase 6, 5 added) |
+| Console | 0 errors, 0 warnings | Unity `read_console` after a forced refresh + compile |
+
+The suite could not run at all when the session opened: T31 removed `SurfaceRow.SelectedMarker` and left the
+discrimination test referring to it (`SurfaceListPanelTests.cs:200`, CS0117). Repaired first, in its own commit.
+
+### Per-AC evidence
+
+| AC | Where it is satisfied | Where it is asserted |
+| -- | --------------------- | -------------------- |
+| HUD-01 AC1 | `Assets/Resources/HUD/*.png.meta` — Sprite (2D and UI), Full Rect, Bilinear, Compression None (`overridden: 0` on every platform block, so the default governs), sRGB on, PPU 300, borders tripled from the handoff (`row_fill_9s.png.meta:52` = 18/18/18/18 for the kit's 6). AD-024 records why the HUD reads from `Resources` | Build gate (config layer, per the coverage matrix) |
+| HUD-01 AC2 | `HudTheme.cs` palette + `ReferenceResolution` 1183x670 match 0.5 (`SurfaceListPanel.cs:118-121`); rail, buttons, toggle, rows, readout, hint pill, scanlines built to the handoff's RectTransform table; `ProjectSettings.asset:62-65` allows landscape only | `HudArtKitTests.Readout_TracksTheSelection_AndTheWindowCount`, `HudArtKitTests.HintPill_FollowsTheMode`; appearance itself deferred to UAT |
+| HUD-01 AC3 | `SurfaceRow.IsSelected` (T31) | `SurfaceListPanelTests.SelectedState_LivesOnTheRow_NotInTheLabelText` |
+| HUD-01 AC4 | `HudTheme.AddImage` defaults `raycastTarget: false`; only `AddPanelBackground`'s fill, the rail fill, the header fill, button fills and the popup fill opt in | `HudArtKitTests.Decoration_OverTheWholeScreen_ConsumesNoTap`, paired with `Panels_DoConsumeTaps_SoNoTapFallsThroughIntoTheRoom` |
+| HUD-01 AC5 | Clear stays idempotent and single-step (`ClearButton.cs`); the kit's destructive palette is used only on window deletion (`WindowView.cs`). Extended to copy: the hint pill describes WIN-02's drag, not the mock-up's tap-to-place with resize handles | `ClearButtonTests` (unchanged), `HudArtKitTests.HintPill_FollowsTheMode` |
+| WIN-01 AC1 (state dot) | `WindowModeButton.StateDot` wired to `HudButton.Dot` in `RoomBootstrap.Compose` | `HudArtKitTests.RailWindowModeButton_EntersWindowMode_InASingleClick` |
+
+### Discrimination sensor
+
+Two behaviour-level mutations, applied to the real tree, run, then reverted; the revert was confirmed by
+re-running the suite to green.
+
+| Mutant | Result | Killed by |
+| ------ | ------ | --------- |
+| `AddScanlines` passes `raycastTarget: true` | **Killed** — `Expected: 0 But was: 1`, naming `Scanlines` as the hit | `Decoration_OverTheWholeScreen_ConsumesNoTap` |
+| `windowModeHud.Button.onClick.AddListener(...)` duplicated | **Killed** — `Expected: WindowDraw But was: Orbit` | `RailWindowModeButton_EntersWindowMode_InASingleClick` |
+
+No survivors. The `Panels_DoConsumeTaps` half is what makes the first sensor meaningful: an earlier draft of it
+failed and exposed defect 2 below, which is also proof the raycast is not inert.
+
+### Defects found and fixed during Phase 6
+
+1. **The AR button was wired twice.** `ArToggleButton.Configure` registers its own `onClick`, and
+   `RoomBootstrap.Compose` added the same listener again, so one press ran `OnClick` twice: Orbit -> Ar -> Orbit.
+   Untestable through `ArToggleButton`'s own fixture, which builds its button by hand and never saw the second
+   registration. Fixed by dropping the bootstrap's line; the same class of bug is now sensed on the window mode
+   button, which is the one rail button a headless test can actually press.
+2. **No panel background blocked taps.** `HudTheme.AddPanelBackground` created the fill with the default
+   `raycastTarget: false`, so a tap anywhere on the surfaces list fell through into the room and selected whatever
+   was behind it — EDGE-02, not HUD-01. Found by the paired half of the AC4 sensor, which reported
+   `fillRaycast=False` on a panel it expected to block. Fixed in `AddPanelBackground`; the hint pill opts in the
+   same way.
+3. **Locale leaked into the readout.** `float.ToString("0.00")` follows the device culture, so a pt-BR phone
+   rendered `4,00 × 2,80`. Fixed with `CultureInfo.InvariantCulture`; the test asserts the same way, so it would
+   have passed either way — that one is caught by reading, not by the sensor.
+
+### Known gaps
+
+- **Appearance is not asserted anywhere.** By design (the coverage matrix puts appearance in UAT), but it means
+  the palette, spacing and 9-slice work rest on the screenshots taken during this session and on human review.
+- **Every screenshot was taken at the Editor Game view's 1557x1222.** That is not the landscape shape AD-020
+  designs for, so proportion and overflow on a real device are unverified.
+- **This section is author-verified.** Sections 1-8 had author != verifier; this one did not.

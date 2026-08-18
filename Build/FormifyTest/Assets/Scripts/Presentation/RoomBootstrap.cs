@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Formify.Domain;
-using TMPro;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -17,6 +16,13 @@ namespace Formify.Presentation
     public class RoomBootstrap : MonoBehaviour
     {
         private const string LitShaderName = "Universal Render Pipeline/Lit";
+
+        // The art kit's RightRail block, in its reference pixels (HUD-01 AC2).
+        private const float RailWidth = 264f;
+        private const float RailInset = 14f;
+        private static readonly Vector2 RailButtonSize = new Vector2(212f, 46f);
+        private static readonly Vector2 ReadoutPosition = new Vector2(8f, -404f);
+        private static readonly Vector2 ReadoutSize = new Vector2(250f, 92f);
 
         [SerializeField] private Vector2 roomSize = new Vector2(6f, 4f);
         [SerializeField] private float height = 2.8f;
@@ -51,6 +57,15 @@ namespace Formify.Presentation
         public SelectionController Selection { get; private set; }
 
         public SurfaceListPanel ListPanel { get; private set; }
+
+        /// <summary>The art kit's right-hand action rail. Null until <see cref="Compose"/> has run.</summary>
+        public RectTransform Rail { get; private set; }
+
+        public WindowModeButton WindowMode { get; private set; }
+
+        public HudReadout Readout { get; private set; }
+
+        public HudHintPill HintPill { get; private set; }
 
         public WindowDrawController WindowDraw { get; private set; }
 
@@ -134,13 +149,24 @@ namespace Formify.Presentation
             ListPanel = gameObject.AddComponent<SurfaceListPanel>();
             ListPanel.Configure(Model);
 
-            GameObject clearGo = CreateButton(ListPanel.Canvas, "Clear", new Vector2(1f, 1f), new Vector2(-16f, -16f));
-            clearGo.AddComponent<ClearButton>().Configure(Model, Modes);
+            Rail = BuildRightRail(ListPanel.Canvas);
 
-            GameObject windowModeGo = CreateButton(ListPanel.Canvas, "Window mode", new Vector2(1f, 1f), new Vector2(-16f, -80f));
-            WindowModeButton windowMode = windowModeGo.AddComponent<WindowModeButton>();
+            HudButton windowModeHud = RailButton("BtnWindowMode", "icon_window", "Window mode", -12f, true);
+            WindowModeButton windowMode = windowModeHud.gameObject.AddComponent<WindowModeButton>();
+            windowMode.StateDot = windowModeHud.Dot;
             windowMode.Configure(Model, Modes);
-            windowModeGo.GetComponent<Button>().onClick.AddListener(windowMode.OnClick);
+            // The button paints itself from its own state; only the click still has to be wired by hand, because
+            // WindowModeButton (unlike Clear and AR) does not wire its own onClick in Configure.
+            windowModeHud.ActiveSource = () => windowMode.IsActive;
+            windowModeHud.Button.onClick.AddListener(windowMode.OnClick);
+            WindowMode = windowMode;
+
+            HudButton clearHud = RailButton("BtnClear", "icon_trash", "Clear", -68f, false);
+            clearHud.UseNeutralPalette = true;
+            clearHud.Apply();
+            clearHud.gameObject.AddComponent<ClearButton>().Configure(Model, Modes);
+
+            RailDivider(-124f);
 
             if (camera != null)
             {
@@ -163,12 +189,22 @@ namespace Formify.Presentation
                 TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, RoomBounds);
             }
 
-            GameObject arGo = CreateButton(ListPanel.Canvas, "AR", new Vector2(1f, 1f), new Vector2(-16f, -144f));
-            ArToggleButton arToggle = arGo.AddComponent<ArToggleButton>();
+            HudButton arHud = RailButton("BtnAR", "icon_ar", "View in AR", -132f, false);
+            // Configure wires its own onClick; adding it here too would fire OnClick twice and undo the toggle.
+            ArToggleButton arToggle = arHud.gameObject.AddComponent<ArToggleButton>();
             arToggle.Configure(Modes, ArCamera);
-            arGo.GetComponent<Button>().onClick.AddListener(arToggle.OnClick);
+            arHud.ActiveSource = () => Modes != null && Modes.Current == Mode.Ar;
 
             gameObject.AddComponent<ViewSwitchButtons>().Configure(Modes, ListPanel.Canvas);
+
+            Readout = HudReadout.Create(ListPanel.Canvas.transform, ReadoutPosition, ReadoutSize);
+            Readout.Configure(Model);
+
+            HintPill = HudHintPill.Create(ListPanel.Canvas.transform);
+            HintPill.Configure(Modes);
+
+            // Last, so it covers the HUD. Raycast Target is off inside AddScanlines (HUD-01 AC4).
+            HudTheme.AddScanlines(ListPanel.Canvas);
 
             Input.Tapped += OnTapped;
             Input.DragStart += OnDragStart;
@@ -258,33 +294,41 @@ namespace Formify.Presentation
         }
 
         /// <summary>
-        /// A labelled uGUI button on the shared canvas. Anchor is the corner it sticks to (0,0 bottom-left,
-        /// 1,1 top-right); offset is the pixel nudge away from it.
+        /// The art kit's `RightRail` (HUD-01 AC2): a near-opaque column down the right edge holding the three
+        /// action buttons. Unlike the decoration on the canvas, the rail fill IS a raycast target — it is a
+        /// panel, so a tap on it must not fall through into the room behind it (EDGE-02).
         /// </summary>
-        public static GameObject CreateButton(Canvas canvas, string label, Vector2 anchor, Vector2 offset)
+        private RectTransform BuildRightRail(Canvas canvas)
         {
-            var go = new GameObject(label + " Button", typeof(RectTransform), typeof(Image), typeof(Button));
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(canvas.transform, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
-            rect.sizeDelta = new Vector2(140f, 48f);
-            rect.anchoredPosition = offset;
-            go.GetComponent<Image>().color = new Color(0.16f, 0.16f, 0.18f, 0.9f);
+            RectTransform rail = HudTheme.NewUi("RightRail", canvas.transform);
+            rail.anchorMin = new Vector2(1f, 0f);
+            rail.anchorMax = new Vector2(1f, 1f);
+            rail.pivot = new Vector2(1f, 0.5f);
+            rail.offsetMin = new Vector2(-RailWidth, 0f);
+            rail.offsetMax = Vector2.zero;
 
-            var textGo = new GameObject("Label", typeof(RectTransform));
-            var textRect = (RectTransform)textGo.transform;
-            textRect.SetParent(rect, false);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.sizeDelta = Vector2.zero;
+            HudTheme.AddImage(rail, "RailFill", "panel_fill_9s", HudTheme.RailFill, Image.Type.Sliced,
+                raycastTarget: true);
+            return rail;
+        }
 
-            var text = textGo.AddComponent<TextMeshProUGUI>();
-            text.text = label;
-            text.fontSize = 22f;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = Color.white;
+        /// <summary>One 212 x 46 rail button, `top` px below the rail's top edge and inset 14 px from its right.</summary>
+        private HudButton RailButton(string objectName, string iconSprite, string label, float top, bool withStateDot)
+        {
+            HudButton button = HudButton.Create(Rail, objectName, iconSprite, label, RailButtonSize, withStateDot);
+            ((RectTransform)button.transform).anchoredPosition = new Vector2(-RailInset, top);
+            return button;
+        }
 
-            return go;
+        private void RailDivider(float top)
+        {
+            RectTransform band = HudTheme.NewUi("Divider", Rail);
+            band.anchorMin = new Vector2(1f, 1f);
+            band.anchorMax = new Vector2(1f, 1f);
+            band.pivot = new Vector2(1f, 1f);
+            band.anchoredPosition = new Vector2(-RailInset, top);
+            band.sizeDelta = new Vector2(RailButtonSize.x, 1f);
+            HudTheme.AddDivider(band);
         }
 
         /// <summary>Footprint corners in the world XZ plane, centred on the origin.</summary>

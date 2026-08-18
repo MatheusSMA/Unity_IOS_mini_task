@@ -11,7 +11,7 @@ in `.specs/STATE.md` supersedes it (see [Adopted / not adopted](#adopted--not-ad
 | Kit handoff | `Unity-handoff.md` in that folder — hierarchy, RectTransforms, borders, colours, TMP settings |
 | Requirements | HUD-01 (AC1-AC5), WIN-01 AC1 |
 | Tasks | T30 (button behaviour), T31 (row state seam), T32 (paint) — `docs/tasks/` |
-| Decisions | AD-019 (button disabled, not hidden), AD-020 (landscape) |
+| Decisions | AD-019 (button disabled, not hidden), AD-020 (landscape), AD-022 (live readout/hint), AD-023 (UI colour space), AD-024 (Resources/HUD ships the -3x set) |
 
 ---
 
@@ -30,6 +30,11 @@ The app ships **landscape** — phone held horizontally (AD-020). The kit is aut
 
 36 PNGs in `sprites/`, all **white** — every element is tinted through the Image `color` field, so one set
 covers every state. Each sprite ships at three densities (`-1x`, `-2x`, `-3x`); **iOS ships the -3x set**.
+
+The HUD does not read from this folder. The kit is built in code, so there is no inspector reference to carry a
+sprite, and the 13 sprites the HUD uses were copied into `Assets/Resources/HUD/` under their base names
+(`row_fill_9s.png`, `icon_ar.png`, ...) where `HudTheme.Sprite()` loads them by name (AD-024). The folder here
+stays untouched reference material — all three densities, exactly as the kit shipped them.
 
 All files: Texture Type **Sprite (2D and UI)**, Mesh Type **Full Rect**, Filter **Bilinear**, Compression
 **None**, sRGB **on**. Pixels Per Unit **100 / 200 / 300** for -1x / -2x / -3x, so a border that measures 8 px
@@ -87,10 +92,19 @@ Paste straight into the Image colour field (RGBA hex).
 | Readout / dimensions | mono 15 (11 for the unit) · tracking 0 |
 | Hint pill | 11.5 · +50 |
 
-**Known deviation:** the kit specifies Inter Medium / Mono. The project ships only `LiberationSans SDF`
+**Known deviation 1:** the kit specifies Inter Medium / Mono. The project ships only `LiberationSans SDF`
 (`Assets/TextMesh Pro/Fonts`), and adding a font family is a licensing and asset decision, not a restyle. The
 pass keeps the kit's sizes, tracking, casing and alignment on the default TMP font. Never use TMP faux-bold to
 fake the weight — it distorts the SDF.
+
+**Known deviation 2:** the `SELECTED` tag and the readout's window-count chip use `row_fill_9s`, not
+`pill_fill_9s`. The pill's corner is 24 px; on a 16 px tall tag that leaves no straight edge anywhere and the tag
+renders as an ellipse. The hint pill, 36 px tall, keeps `pill_fill_9s` as the table says.
+
+**Colour space:** the palette below is pasted as plain sRGB and the HUD canvas carries
+`vertexColorAlwaysGammaSpace = true` (AD-023). Do not "fix" a colour by converting it by hand — under Linear
+rendering `Image` and TextMeshPro disagree about vertex colours, and that flag is what makes one palette correct
+on both.
 
 ## 5. Kit node → the script that builds it
 
@@ -107,7 +121,9 @@ The HUD has no prefab: every view is constructed in code, so the kit is applied 
 | `WorldOverlay`, `WindowRect`, handles, `BtnDelete` | `Assets/Scripts/Presentation/WindowView.cs` |
 | `Scanlines` overlay, shared sprite/colour helpers | `Assets/Scripts/UI/HudTheme.cs` |
 
-`Readout` and `HintPill` are kit nodes with no behaviour behind them in this build; they are decoration only.
+`Readout` (`Assets/Scripts/UI/HudReadout.cs`) and `HintPill` (`Assets/Scripts/UI/HudHintPill.cs`) carry live data
+rather than the mock-up's frozen copy — AD-022. The readout follows `RoomModel` (selection and window events);
+the pill follows `ModeManager.ModeChanged`.
 
 ## 6. Watch out
 
@@ -124,4 +140,5 @@ The HUD has no prefab: every view is constructed in code, so the kit is applied 
 | Kit behaviour | Verdict |
 | --- | --- |
 | Window mode button interactable only while a wall is selected, disabled palette + state dot | **Adopted** — AD-019 made it the spec rule (WIN-01 AC1); T30 implements, T32 paints |
-| Clear asks for confirmation (`CLEAR ALL?`, red palette) | **Not adopted** — CLR-01 says Clear is the single idempotent path to the empty state; a confirmation step is a product change, not a restyle. HUD-01 AC5 records the rule |
+| Clear asks for confirmation (`CLEAR ALL?`, red palette) | **Not adopted** — CLR-01 says Clear is the single idempotent path to the empty state; a confirmation step is a product change, not a restyle. HUD-01 AC5 records the rule. The kit's destructive palette is used, but on the one deletion the spec does have: the window delete button and its confirmation (WIN-04) |
+| Window placed by tap, then resized by dragging corner handles (`TAP TO PLACE`, 4 handles) | **Not adopted** — WIN-02 cuts the opening from a single drag; tap-to-place and resize are a different interaction, and window move/resize is explicitly out of scope. The hint pill's copy describes the drag. Same rule as the Clear button, applied to copy |

@@ -14,14 +14,11 @@ namespace Formify.Presentation
     /// </summary>
     public class ViewSwitchButtons : MonoBehaviour
     {
-        [SerializeField] private Color activeColor = new Color(0.20f, 0.55f, 0.95f, 1f);
-        [SerializeField] private Color inactiveColor = new Color(0f, 0f, 0f, 0.6f);
-        [SerializeField] private Color labelColor = Color.white;
-        [SerializeField] private float buttonWidth = 120f;
-        [SerializeField] private float buttonHeight = 56f;
-        [SerializeField] private float spacing = 12f;
-        [SerializeField] private float topMargin = 16f;
-        [SerializeField] private float fontSize = 24f;
+        [SerializeField] private float buttonWidth = 66f;
+        [SerializeField] private float buttonHeight = 38f;
+        [SerializeField] private float spacing = 8f;
+        [SerializeField] private float topMargin = 12f;
+        [SerializeField] private float fontSize = 13f;
 
         private ModeManager _modes;
         private Canvas _canvas;
@@ -87,7 +84,18 @@ namespace Formify.Presentation
             if (button == null) return;
 
             button.interactable = !active;
-            if (button.image != null) button.image.color = active ? activeColor : inactiveColor;
+            if (button.image != null) button.image.color = active ? HudTheme.ActiveFill : HudTheme.NeutralFill;
+
+            // Only the active segment is outlined; the idle one is a bare fill (kit ViewToggle).
+            Transform border = button.transform.Find("Border");
+            if (border != null)
+            {
+                var borderImage = border.GetComponent<Image>();
+                if (borderImage != null) borderImage.color = active ? HudTheme.Accent : Color.clear;
+            }
+
+            var label = button.GetComponentInChildren<TextMeshProUGUI>();
+            if (label != null) label.color = active ? HudTheme.ActiveText : HudTheme.IdleLabel;
         }
 
         private static void Wire(Button button, UnityEngine.Events.UnityAction handler)
@@ -98,18 +106,20 @@ namespace Formify.Presentation
             button.onClick.AddListener(handler);
         }
 
+        /// <summary>The kit's ViewToggle: one panel, two 66 x 38 segments, 3 px of inner padding.</summary>
         private void BuildButtons()
         {
-            _root = NewUiObject("ViewSwitch", _canvas.transform);
+            _root = NewUiObject("ViewToggle", _canvas.transform);
             _root.anchorMin = new Vector2(0.5f, 1f);
             _root.anchorMax = new Vector2(0.5f, 1f);
             _root.pivot = new Vector2(0.5f, 1f);
             _root.anchoredPosition = new Vector2(0f, -topMargin);
-            _root.sizeDelta = new Vector2(buttonWidth * 2f + spacing, buttonHeight);
+            _root.sizeDelta = new Vector2(buttonWidth * 2f + spacing + 6f, buttonHeight + 6f);
+            HudTheme.AddPanelBackground(_root, HudTheme.PanelFill, HudTheme.PanelBorder);
 
             float offset = (buttonWidth + spacing) * 0.5f;
-            TwoDButton = CreateButton("TwoD", "2D", -offset);
-            ThreeDButton = CreateButton("ThreeD", "3D", offset);
+            TwoDButton = CreateButton("Seg2D", "2D", -offset);
+            ThreeDButton = CreateButton("Seg3D", "3D", offset);
         }
 
         private Button CreateButton(string objectName, string label, float x)
@@ -122,13 +132,17 @@ namespace Formify.Presentation
             rt.sizeDelta = new Vector2(buttonWidth, buttonHeight);
 
             Image background = rt.gameObject.AddComponent<Image>();
-            background.color = inactiveColor;
+            background.sprite = HudTheme.Sprite("row_fill_9s");
+            if (background.sprite != null) background.type = Image.Type.Sliced;
+            background.color = HudTheme.NeutralFill;
 
             Button button = rt.gameObject.AddComponent<Button>();
             button.targetGraphic = background;
             // The active/inactive colour IS the state readout; the built-in tint would multiply on top of it and
             // grey out the highlight the moment the active button goes non-interactable.
             button.transition = Selectable.Transition.None;
+
+            HudTheme.AddImage(rt, "Border", "panel_border_9s", Color.clear);
 
             RectTransform labelRt = NewUiObject("Label", rt);
             labelRt.anchorMin = Vector2.zero;
@@ -138,7 +152,8 @@ namespace Formify.Presentation
 
             TextMeshProUGUI text = labelRt.gameObject.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.color = labelColor;
+            text.characterSpacing = HudTheme.Tracking(100f);
+            text.color = HudTheme.IdleLabel;
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             text.text = label;

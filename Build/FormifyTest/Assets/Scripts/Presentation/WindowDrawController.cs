@@ -33,7 +33,10 @@ namespace Formify.Presentation
         [Tooltip("Preview material. Left empty a simple unlit fallback is created at runtime.")]
         Material previewMaterial;
 
-        [SerializeField] Color previewColor = new Color(0.25f, 0.6f, 1f, 0.45f);
+        [SerializeField]
+        [Tooltip("Art kit accent 35F08A, translucent (HUD-01 AC2). The preview is a world-space quad, not uGUI, " +
+                 "so it carries the colour itself rather than a HudTheme sprite.")]
+        Color previewColor = new Color(0.208f, 0.941f, 0.541f, 0.28f);
 
         RoomModel model;
         ModeManager modes;

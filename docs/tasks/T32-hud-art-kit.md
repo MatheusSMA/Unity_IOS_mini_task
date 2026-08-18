@@ -3,6 +3,12 @@
 **Phase**: 6 (P4 follow-up) | **Requirement**: HUD-01 (AC1, AC2, AC4, AC5) | **Depends on**: T30, T31 | **Tests**: PlayMode | **Gate**: build
 **Orientation**: landscape, decided in AD-020 (2026-08-18).
 
+**Done 2026-08-18.** See `validation.md` section 9 for the per-AC evidence, the two-mutant sensor and the three
+defects the pass turned up. Three things the plan did not anticipate became decisions: AD-022 (the kit's `Readout`
+and `HintPill` carry live data instead of frozen copy), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas —
+under Linear rendering `Image` and TextMeshPro disagree about a vertex colour, so one palette cannot be right on
+both without it) and AD-024 (the -3x set ships from `Assets/Resources/HUD/`; the kit folder stays reference).
+
 ## Functional description
 
 The uGUI layer is built in code with grey boxes and white labels. The `Room Scanner HUD` kit (commit `eb0124a`) sits in `Assets/Sprite/Game UI mockups for Unity/` with a complete handoff — hierarchy, RectTransforms, 9-slice borders, colour roles, TMP settings — and none of it is applied. This task applies it.
@@ -25,10 +31,10 @@ Regression, not appearance — appearance goes to human UAT. A tap whose screen 
 
 ## Done when
 
-- [ ] Every sprite the HUD uses carries the handoff's import settings; none left on Unity defaults
-- [ ] App is landscape-only in ProjectSettings; the HUD reproduces the kit's layout, proportions and palette
-- [ ] PlayMode regression proves decorative images do not consume taps
-- [ ] No acceptance criterion outside HUD-01 changes behaviour; full suite green
-- [ ] Unity MCP console zero compile errors + `run_tests` EditMode + PlayMode green
+- [x] Every sprite the HUD uses carries the handoff's import settings; none left on Unity defaults
+- [x] App is landscape-only in ProjectSettings; the HUD reproduces the kit's layout, proportions and palette
+- [x] PlayMode regression proves decorative images do not consume taps — and its paired half proves opaque HUD does
+- [x] No acceptance criterion outside HUD-01 changes behaviour; full suite green
+- [x] Unity MCP console zero compile errors + `run_tests` EditMode 67/67 + PlayMode 92/92 green
 
 **Tools**: unity-mcp (UI, manage_asset, run_tests) + unity-mcp-skill | **Commit**: `[feat] apply room scanner hud art kit`

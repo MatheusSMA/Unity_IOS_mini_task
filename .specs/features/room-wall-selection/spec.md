@@ -305,9 +305,16 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | EDGE-04 | Edge Cases | Tasks | Verified |
 | EDGE-05 | Edge Cases | Tasks | Verified |
 | EDGE-06 | Edge Cases | Tasks | Verified |
-| HUD-01 | P4: HUD visual pass | Tasks | Pending |
+| HUD-01 | P4: HUD visual pass | Tasks | Verified |
 
 **ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating and exit (enabled in Orbit or WindowDraw) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8); HUD-01 art-kit HUD pass incl. selected-state field and raycast hygiene (H all).
+
+**HUD-01 was implemented on 2026-08-18** by T31 (AC3) and T32 (AC1, AC2, AC4, AC5). Appearance itself stays a
+human check (`validation.md` section 7); what automation asserts is what a restyle can break silently — decoration
+that starts consuming taps, opaque HUD that stops consuming them, a rail button wired twice, and the readout and
+hint copy going stale. Two kit nodes the earlier notes called decoration, `Readout` and `HintPill`, carry live data
+instead (AD-022), and the hint copy describes the drag that WIN-02 actually implements rather than the mock-up's
+tap-to-place with resize handles — AC5 again, this time about copy rather than the Clear button.
 
 **WIN-01 AC1 was rewritten on 2026-08-18** by AD-019 (button disabled instead of hidden, with a state dot) and AD-021 (pressing it while window mode is active exits to Orbit). T30 implemented both and the PlayMode fixture now asserts enabled/disabled, the state dot and both click directions, so WIN-01 is back to `Verified`.
 

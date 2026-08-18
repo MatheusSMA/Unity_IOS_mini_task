@@ -13,7 +13,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/room-wall-selection/design.md`
-**Status**: Phases 1-5 complete — 29 tasks implemented, committed and independently verified (`validation.md`). Phase 6 open: 3 follow-up tasks (T30-T32). Both product questions were answered on 2026-08-18 (AD-019, AD-020 in `.specs/STATE.md`); none of the three is implemented, and the owner is still planning T30
+**Status**: All 32 tasks implemented, committed and verified. Phases 1-5 were independently verified in `validation.md`; Phase 6 (T30 button behaviour, T31 row state seam, T32 art kit) landed on 2026-08-18 and is recorded in `validation.md` section 9. Gate: EditMode 67/67, PlayMode 92/92. What remains is human UAT only — the three checks in `validation.md` section 7, plus the kit's appearance
 
 ---
 
@@ -94,7 +94,8 @@ T30 -> T32
 T31 -> T32
 ```
 
-**Decided, not started.** AD-019 (button always on screen, disabled instead of hidden, state dot for active) and AD-020 (landscape) are both `active`. The owner is planning T30 - do not start it unprompted. T31 is the prerequisite that stops the restyle from breaking the four PlayMode tests that read the row label, so it runs before T32.
+**Done, 2026-08-18.** T30 implemented AD-019 and AD-021, T31 moved the selected state onto the row, and T32
+painted the HUD from the kit under AD-020. Follow-on decisions from the paint itself: AD-022, AD-023, AD-024.
 
 ---
 
@@ -929,6 +930,10 @@ T31 -> T32
 
 ### T32: Apply the Room Scanner HUD art kit + PlayMode raycast regression
 
+**Done** - landed 2026-08-18. Three things the plan did not anticipate are recorded as AD-022 (Readout and HintPill
+carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and AD-024 (the -3x set ships from
+`Assets/Resources/HUD/`, the kit folder stays untouched reference).
+
 **What**: Replace the placeholder grey boxes with the imported kit: set each sprite's import settings per `Assets/Sprite/Game UI mockups for Unity/Unity-handoff.md` (Sprite (2D and UI), Full Rect, the listed 9-slice borders, Pixels Per Unit matched to the -Nx variant shipped), narrow ProjectSettings to landscape and set the CanvasScaler for it (AD-020 - match the kit's art, the reference resolution itself is free), and build the panel, rail, buttons, rows, readout and overlays with the kit's sprites, colours and TMP settings. Decorative images (scanlines, glow, borders, dividers) get Raycast Target off. One thing in the kit's copy is not adopted: the Clear button asking for confirmation, which CLR-01 does not have (HUD-01 AC5 keeps the spec rule). The kit's other implied behaviour, the disabled-not-hidden window mode button, is now the spec rule via AD-019 - T30 implements it and this task only paints it, including its state dot.
 **Where**: `Assets/Sprite/Game UI mockups for Unity/sprites/*.png.meta`, `Assets/Scripts/UI/*.cs` (view construction), `ProjectSettings/ProjectSettings.asset`, `Assets/Tests/PlayMode/`
 **Depends on**: T30, T31
@@ -942,11 +947,11 @@ T31 -> T32
 
 **Done when**:
 
-- [ ] Every sprite the HUD uses carries the handoff's import settings; no sprite left on Unity defaults
-- [ ] App is landscape-only in ProjectSettings; the HUD reproduces the kit's layout, proportions and palette
-- [ ] PlayMode regression: a tap landing on a decorative image (scanline overlay, glow) still selects the surface behind it (EDGE-02 stays honest)
-- [ ] No acceptance criterion outside HUD-01 changes behaviour; full suite still green
-- [ ] Gate passes: Unity MCP console zero compile errors + run_tests EditMode + PlayMode
+- [x] Every sprite the HUD uses carries the handoff's import settings; no sprite left on Unity defaults
+- [x] App is landscape-only in ProjectSettings; the HUD reproduces the kit's layout, proportions and palette
+- [x] PlayMode regression: a tap landing on a decorative image (scanline overlay, glow) still selects the surface behind it (EDGE-02 stays honest), and the paired case proves opaque HUD does stop it
+- [x] No acceptance criterion outside HUD-01 changes behaviour; full suite still green
+- [x] Gate passes: Unity MCP console zero compile errors + run_tests EditMode 67/67 + PlayMode 92/92
 
 **Tests**: PlayMode
 **Gate**: build
@@ -982,7 +987,7 @@ Phase 6:  T30 → T32
           T31 → T32
 ```
 
-Execution is strictly sequential - one task at a time, in order. 32 tasks total; Phases 1-5 (29 tasks) are done. Phase 6 holds 3 tasks and fits a single batch, so it runs inline - no sub-agent offer. Two of the three are gated on a pending decision (AD-019, AD-020).
+Execution is strictly sequential - one task at a time, in order. 32 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phase 6 (3 tasks) fitted a single batch and ran inline, so no sub-agent offer was made.
 
 ---
 

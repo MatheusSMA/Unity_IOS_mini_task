@@ -11,14 +11,16 @@ namespace Formify.Presentation
     /// One window opening (WIN-04). The BoxCollider is the only thing living inside the hole, so an empty
     /// opening stays tappable (AC1) — SelectionController finds this component on the hit and routes the tap
     /// here without touching the selection (AD-014, SEL-03 AC7), which is why no dedicated layer is needed.
-    /// Owns the delete affordance end to end: X at the top-right (AC2) -> confirmation popup (AC3) ->
-    /// confirm removes the window (AC4) / cancel changes nothing (AC5).
+    /// Owns the delete affordance end to end: the kit's trash button at the top-right (AC2) -> confirmation
+    /// popup (AC3) -> confirm removes the window (AC4) / cancel changes nothing (AC5).
     /// </summary>
     public class WindowView : MonoBehaviour, IWindowTapTarget
     {
-        [SerializeField] private float deleteButtonSize = 56f;
-        [SerializeField] private float fontSize = 22f;
-        [SerializeField] private Vector2 popupSize = new Vector2(460f, 220f);
+        private const float IconSize = 16f;
+
+        [SerializeField] private float deleteButtonSize = 46f;
+        [SerializeField] private float fontSize = 13f;
+        [SerializeField] private Vector2 popupSize = new Vector2(320f, 150f);
         [SerializeField] private string confirmationMessage = "Delete this window?";
 
         private SurfaceDefinition _surface;
@@ -111,19 +113,31 @@ namespace Formify.Presentation
             if (_popupRoot != null) _popupRoot.SetActive(false);
         }
 
+        /// <summary>The kit's `BtnDelete`: 46 x 46, destructive palette, icon_trash — the only red in the HUD.</summary>
         private void BuildUi()
         {
-            _deleteRoot = NewUiObject("WindowDeleteButton", _canvas.transform);
+            _deleteRoot = HudTheme.NewUi("WindowDeleteButton", _canvas.transform);
             _deleteRoot.sizeDelta = new Vector2(deleteButtonSize, deleteButtonSize);
 
-            Image background = _deleteRoot.gameObject.AddComponent<Image>();
-            background.color = new Color(0.85f, 0.15f, 0.1f, 0.95f);
+            Image background = HudTheme.AddImage(_deleteRoot, "Fill", "panel_fill_9s", HudTheme.DeleteFill,
+                Image.Type.Sliced, raycastTarget: true);
+            HudTheme.AddImage(_deleteRoot, "Border", "panel_border_9s", HudTheme.DeleteBorder);
+
+            float inset = (deleteButtonSize - IconSize) * 0.5f;
+            RectTransform iconRect = HudTheme.Stretch(HudTheme.NewUi("Icon", _deleteRoot));
+            iconRect.offsetMin = new Vector2(inset, inset);
+            iconRect.offsetMax = new Vector2(-inset, -inset);
+            var icon = iconRect.gameObject.AddComponent<Image>();
+            icon.sprite = HudTheme.Sprite("icon_trash");
+            icon.color = HudTheme.DeleteIcon;
+            icon.raycastTarget = false;
 
             DeleteButton = _deleteRoot.gameObject.AddComponent<Button>();
             DeleteButton.targetGraphic = background;
+            // The palette IS the state readout; uGUI's tint would multiply on top of it.
+            DeleteButton.transition = Selectable.Transition.None;
             DeleteButton.onClick.AddListener(ShowConfirmation);
 
-            AddLabel(_deleteRoot, "X", fontSize);
             _deleteRoot.gameObject.SetActive(false);
 
             BuildPopup();
@@ -131,76 +145,62 @@ namespace Formify.Presentation
 
         private void BuildPopup()
         {
-            RectTransform popup = NewUiObject("WindowDeletePopup", _canvas.transform);
+            RectTransform popup = HudTheme.NewUi("WindowDeletePopup", _canvas.transform);
             popup.anchorMin = new Vector2(0.5f, 0.5f);
             popup.anchorMax = new Vector2(0.5f, 0.5f);
             popup.anchoredPosition = Vector2.zero;
             popup.sizeDelta = popupSize;
 
-            Image background = popup.gameObject.AddComponent<Image>();
-            background.color = new Color(0f, 0f, 0f, 0.85f);
+            // The fill is a raycast target so nothing behind the popup can be reached while it is open.
+            HudTheme.AddImage(popup, "Fill", "panel_fill_9s", HudTheme.PanelFill, Image.Type.Sliced,
+                raycastTarget: true);
+            HudTheme.AddImage(popup, "Border", "panel_border_9s", HudTheme.DeleteBorder);
 
-            RectTransform message = AddLabel(popup, confirmationMessage, fontSize);
-            message.anchorMin = new Vector2(0f, 0.45f);
+            RectTransform message = HudTheme.NewUi("Message", popup);
+            message.anchorMin = new Vector2(0f, 0.42f);
             message.anchorMax = Vector2.one;
-            message.offsetMin = Vector2.zero;
-            message.offsetMax = Vector2.zero;
+            message.offsetMin = new Vector2(18f, 0f);
+            message.offsetMax = new Vector2(-18f, -12f);
+            TextMeshProUGUI messageLabel = message.gameObject.AddComponent<TextMeshProUGUI>();
+            messageLabel.text = confirmationMessage;
+            messageLabel.fontSize = fontSize;
+            messageLabel.color = HudTheme.ActiveText;
+            messageLabel.alignment = TextAlignmentOptions.Center;
+            messageLabel.raycastTarget = false;
 
-            AddPopupButton(popup, "ConfirmButton", "Delete", new Color(0.85f, 0.15f, 0.1f, 1f),
-                new Vector2(0.06f, 0.1f), new Vector2(0.48f, 0.38f), ConfirmDelete);
-            AddPopupButton(popup, "CancelButton", "Cancel", new Color(0.3f, 0.3f, 0.32f, 1f),
-                new Vector2(0.52f, 0.1f), new Vector2(0.94f, 0.38f), CancelDelete);
+            AddPopupButton(popup, "ConfirmButton", "Delete", HudTheme.DeleteFill, HudTheme.DeleteBorder,
+                HudTheme.DeleteIcon, new Vector2(0.06f, 0.12f), new Vector2(0.48f, 0.36f), ConfirmDelete);
+            AddPopupButton(popup, "CancelButton", "Cancel", HudTheme.NeutralFill, HudTheme.NeutralBorder,
+                HudTheme.ActiveText, new Vector2(0.52f, 0.12f), new Vector2(0.94f, 0.36f), CancelDelete);
 
             _popupRoot = popup.gameObject;
             _popupRoot.SetActive(false);
         }
 
-        private void AddPopupButton(RectTransform parent, string objectName, string text, Color color,
-            Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
+        private void AddPopupButton(RectTransform parent, string objectName, string text, Color fill, Color border,
+            Color labelColor, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
         {
-            RectTransform rect = NewUiObject(objectName, parent);
+            RectTransform rect = HudTheme.NewUi(objectName, parent);
             rect.anchorMin = anchorMin;
             rect.anchorMax = anchorMax;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            Image background = rect.gameObject.AddComponent<Image>();
-            background.color = color;
+            Image background = HudTheme.AddImage(rect, "Fill", "panel_fill_9s", fill, Image.Type.Sliced,
+                raycastTarget: true);
+            HudTheme.AddImage(rect, "Border", "panel_border_9s", border);
+            HudTheme.AddLabel(rect, "Label", text.ToUpperInvariant(), 12.5f, 100f, labelColor,
+                TextAlignmentOptions.Center);
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = background;
+            button.transition = Selectable.Transition.None;
             button.onClick.AddListener(onClick);
-
-            AddLabel(rect, text, fontSize);
         }
 
         private void ShowConfirmation()
         {
             if (_popupRoot != null) _popupRoot.SetActive(true);
-        }
-
-        private RectTransform AddLabel(RectTransform parent, string text, float size)
-        {
-            RectTransform rect = NewUiObject("Label", parent);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            TextMeshProUGUI label = rect.gameObject.AddComponent<TextMeshProUGUI>();
-            label.text = text;
-            label.fontSize = size;
-            label.color = Color.white;
-            label.alignment = TextAlignmentOptions.Center;
-            label.raycastTarget = false;
-            return rect;
-        }
-
-        private static RectTransform NewUiObject(string objectName, Transform parent)
-        {
-            GameObject go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
         }
 
         private void OnDestroy()

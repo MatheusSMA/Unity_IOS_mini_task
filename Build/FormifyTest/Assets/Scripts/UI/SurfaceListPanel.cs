@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Formify.Domain;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -10,25 +9,29 @@ namespace Formify.Presentation
     /// <summary>
     /// The state readout (LIST-01, LIST-02): one row per surface in <see cref="RoomModel.Surfaces"/> order,
     /// live-bound to <see cref="RoomModel.SelectionChanged"/> — exactly the two affected rows are rewritten per
-    /// event (AD-007). Collapsing hides the row container, never the binding (EDGE-06); the collapse control
-    /// itself stays visible (LIST AC4).
-    /// Owns the application Canvas built entirely in code — later UI tasks attach to <see cref="Canvas"/>.
+    /// event (AD-007). Collapsing hides the row container, never the binding (EDGE-06); the header doubles as
+    /// the collapse control and stays visible either way (LIST AC4).
+    /// Owns the application Canvas built entirely in code — later UI tasks attach to <see cref="Canvas"/> — and
+    /// paints itself with the art kit (HUD-01) through <see cref="HudTheme"/>. The canvas is landscape: the
+    /// scaler matches the kit's reference resolution (AD-020).
     /// </summary>
     public class SurfaceListPanel : MonoBehaviour
     {
         private const string RowNamePrefix = "Row_";
 
-        [SerializeField] private float panelWidth = 260f;
-        [SerializeField] private float rowHeight = 32f;
-        [SerializeField] private float fontSize = 20f;
-        [SerializeField] private float panelMargin = 16f;
+        [SerializeField] private float panelWidth = 250f;
+        [SerializeField] private float panelHeight = 312f;
+        [SerializeField] private float rowHeight = 40f;
+        [SerializeField] private float headerHeight = 38f;
+        [SerializeField] private float panelMargin = 8f;
 
         private readonly Dictionary<int, SurfaceRow> _rows = new Dictionary<int, SurfaceRow>();
 
         private RoomModel _model;
         private RectTransform _panelRoot;
         private GameObject _rowContainer;
-        private TextMeshProUGUI _collapseLabel;
+        private Image _headerDot;
+        private TMPro.TextMeshProUGUI _headerCount;
         private GameObject _createdEventSystem;
 
         /// <summary>The screen-space canvas this panel owns. Non-null from Awake onwards.</summary>
@@ -48,13 +51,12 @@ namespace Formify.Presentation
 
             if (_model != null) _model.SelectionChanged -= OnSelectionChanged;
 
-            foreach (SurfaceRow row in _rows.Values)
-            {
-                if (row != null) Destroy(row.gameObject);
-            }
+            // Group dividers are children too and belong to the old model, so the container is cleared wholesale.
+            foreach (Transform child in _rowContainer.transform) Destroy(child.gameObject);
             _rows.Clear();
 
             _model = model;
+            SetHeaderCount(_model == null ? 0 : _model.Surfaces.Count);
             if (_model == null) return;
 
             IReadOnlyList<SurfaceDefinition> surfaces = _model.Surfaces;
@@ -62,7 +64,16 @@ namespace Formify.Presentation
             {
                 SurfaceDefinition surface = surfaces[i];
                 if (surface == null) continue;
-                _rows[surface.id] = CreateRow(surface);
+
+                // The kit rules a hairline where the walls end and floor/ceiling begin.
+                if (i > 0 && surfaces[i - 1] != null &&
+                    surfaces[i - 1].kind == SurfaceKind.Wall && surface.kind != SurfaceKind.Wall)
+                {
+                    AddGroupDivider();
+                }
+
+                _rows[surface.id] = SurfaceRow.Create(_rowContainer.transform, RowNamePrefix + surface.name, i,
+                    surface.name, rowHeight);
             }
 
             _model.SelectionChanged += OnSelectionChanged;
@@ -76,7 +87,7 @@ namespace Formify.Presentation
 
             bool collapsing = _rowContainer.activeSelf;
             _rowContainer.SetActive(!collapsing);
-            if (_collapseLabel != null) _collapseLabel.text = collapsing ? "+ Surfaces" : "- Surfaces";
+            if (_headerDot != null) _headerDot.color = collapsing ? HudTheme.IdleLabel : HudTheme.Accent;
         }
 
         /// <summary>Row state as the row itself holds it — no label parsing (HUD-01 AC3).</summary>
@@ -106,83 +117,129 @@ namespace Formify.Presentation
             row.SetSelected(selected);
         }
 
-        private SurfaceRow CreateRow(SurfaceDefinition surface)
+        private void SetHeaderCount(int count)
         {
-            RectTransform row = NewUiObject(RowNamePrefix + surface.name, _rowContainer.transform);
+            if (_headerCount != null) _headerCount.text = count.ToString();
+        }
 
-            LayoutElement element = row.gameObject.AddComponent<LayoutElement>();
-            element.minHeight = rowHeight;
-            element.preferredHeight = rowHeight;
+        /// <summary>The kit's in-list rule: 1 px of rule_fade inside an 11 px band, decoration only.</summary>
+        private void AddGroupDivider()
+        {
+            RectTransform band = HudTheme.NewUi("Divider", _rowContainer.transform);
+            LayoutElement element = band.gameObject.AddComponent<LayoutElement>();
+            element.minHeight = 11f;
+            element.preferredHeight = 11f;
 
-            TextMeshProUGUI label = row.gameObject.AddComponent<TextMeshProUGUI>();
-            label.fontSize = fontSize;
-            label.color = Color.white;
-            label.alignment = TextAlignmentOptions.MidlineLeft;
-            label.raycastTarget = false;
-
-            SurfaceRow surfaceRow = row.gameObject.AddComponent<SurfaceRow>();
-            surfaceRow.Initialize(surface.name, label);
-            return surfaceRow;
+            RectTransform rule = HudTheme.AddDivider(band).rectTransform;
+            rule.anchorMin = new Vector2(0f, 0.5f);
+            rule.anchorMax = new Vector2(1f, 0.5f);
+            rule.pivot = new Vector2(0.5f, 0.5f);
+            rule.offsetMin = new Vector2(10f, -0.5f);
+            rule.offsetMax = new Vector2(-10f, 0.5f);
         }
 
         private void BuildCanvas()
         {
-            RectTransform canvasRt = NewUiObject("FormifyCanvas", transform);
+            RectTransform canvasRt = HudTheme.NewUi("FormifyCanvas", transform);
             Canvas = canvasRt.gameObject.AddComponent<Canvas>();
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            HudTheme.ApplyColorSpace(Canvas);
 
             CanvasScaler scaler = canvasRt.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1170f, 2532f);
+            scaler.referenceResolution = HudTheme.ReferenceResolution;
             scaler.matchWidthOrHeight = 0.5f;
 
             canvasRt.gameObject.AddComponent<GraphicRaycaster>();
 
             EnsureEventSystem();
 
-            _panelRoot = NewUiObject("SurfaceList", canvasRt);
+            _panelRoot = HudTheme.NewUi("SurfacesPanel", canvasRt);
             _panelRoot.anchorMin = new Vector2(0f, 1f);
             _panelRoot.anchorMax = new Vector2(0f, 1f);
             _panelRoot.pivot = new Vector2(0f, 1f);
             _panelRoot.anchoredPosition = new Vector2(panelMargin, -panelMargin);
-            _panelRoot.sizeDelta = new Vector2(panelWidth, rowHeight * 8f);
-            ApplyVerticalLayout(_panelRoot.gameObject, 4f);
+            _panelRoot.sizeDelta = new Vector2(panelWidth, panelHeight);
+            HudTheme.AddPanelBackground(_panelRoot, HudTheme.PanelFill, HudTheme.PanelBorder);
 
-            BuildCollapseControl();
+            BuildHeader();
 
-            RectTransform rows = NewUiObject("Rows", _panelRoot);
+            RectTransform rows = HudTheme.NewUi("Rows", _panelRoot);
+            rows.anchorMin = new Vector2(0f, 0f);
+            rows.anchorMax = new Vector2(1f, 1f);
+            rows.offsetMin = new Vector2(6f, 6f);
+            rows.offsetMax = new Vector2(-6f, -headerHeight);
             _rowContainer = rows.gameObject;
-            ApplyVerticalLayout(_rowContainer, 2f);
+
+            var layout = _rowContainer.AddComponent<VerticalLayoutGroup>();
+            layout.spacing = 2f;
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
         }
 
-        private void BuildCollapseControl()
+        /// <summary>The kit's header — dot plus "SURFACES" — and the collapse control in one (LIST-02 AC3).</summary>
+        private void BuildHeader()
         {
-            RectTransform control = NewUiObject("CollapseControl", _panelRoot);
-            control.sizeDelta = new Vector2(panelWidth, rowHeight);
+            RectTransform header = HudTheme.NewUi("Header", _panelRoot);
+            header.anchorMin = new Vector2(0f, 1f);
+            header.anchorMax = new Vector2(1f, 1f);
+            header.pivot = new Vector2(0.5f, 1f);
+            header.offsetMin = new Vector2(0f, -headerHeight);
+            header.offsetMax = new Vector2(0f, 0f);
 
-            LayoutElement element = control.gameObject.AddComponent<LayoutElement>();
-            element.minHeight = rowHeight;
-            element.preferredHeight = rowHeight;
+            Image hit = HudTheme.AddImage(header, "HeaderFill", "row_fill_9s", HudTheme.NeutralFill,
+                Image.Type.Sliced, raycastTarget: true);
 
-            Image background = control.gameObject.AddComponent<Image>();
-            background.color = new Color(0f, 0f, 0f, 0.6f);
-
-            Button button = control.gameObject.AddComponent<Button>();
-            button.targetGraphic = background;
+            var button = header.gameObject.AddComponent<Button>();
+            button.targetGraphic = hit;
             button.onClick.AddListener(ToggleCollapsed);
 
-            RectTransform labelRt = NewUiObject("Label", control);
-            labelRt.anchorMin = Vector2.zero;
-            labelRt.anchorMax = Vector2.one;
-            labelRt.offsetMin = Vector2.zero;
-            labelRt.offsetMax = Vector2.zero;
+            RectTransform dot = HudTheme.NewUi("Dot", header);
+            dot.anchorMin = new Vector2(0f, 1f);
+            dot.anchorMax = new Vector2(0f, 1f);
+            dot.pivot = new Vector2(0f, 1f);
+            dot.sizeDelta = new Vector2(6f, 6f);
+            dot.anchoredPosition = new Vector2(12f, -16f);
+            _headerDot = dot.gameObject.AddComponent<Image>();
+            _headerDot.color = HudTheme.Accent;
+            _headerDot.raycastTarget = false;
 
-            _collapseLabel = labelRt.gameObject.AddComponent<TextMeshProUGUI>();
-            _collapseLabel.fontSize = fontSize;
-            _collapseLabel.color = Color.white;
-            _collapseLabel.alignment = TextAlignmentOptions.MidlineLeft;
-            _collapseLabel.raycastTarget = false;
-            _collapseLabel.text = "- Surfaces";
+            RectTransform labelRect = HudTheme.NewUi("Label", header);
+            labelRect.anchorMin = new Vector2(0f, 0f);
+            labelRect.anchorMax = new Vector2(1f, 1f);
+            labelRect.offsetMin = new Vector2(26f, 0f);
+            labelRect.offsetMax = new Vector2(-34f, 0f);
+            var label = labelRect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
+            label.text = "SURFACES";
+            label.fontSize = 11f;
+            label.characterSpacing = HudTheme.Tracking(140f);
+            label.color = HudTheme.IdleLabel;
+            label.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
+            label.raycastTarget = false;
+
+            RectTransform countRect = HudTheme.NewUi("Count", header);
+            countRect.anchorMin = new Vector2(1f, 0f);
+            countRect.anchorMax = new Vector2(1f, 1f);
+            countRect.pivot = new Vector2(1f, 0.5f);
+            countRect.offsetMin = new Vector2(-34f, 0f);
+            countRect.offsetMax = new Vector2(-12f, 0f);
+            _headerCount = countRect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
+            _headerCount.fontSize = 11f;
+            _headerCount.characterSpacing = HudTheme.Tracking(140f);
+            _headerCount.color = HudTheme.Caption;
+            _headerCount.alignment = TMPro.TextAlignmentOptions.MidlineRight;
+            _headerCount.raycastTarget = false;
+
+            // Hairline under the header: 1 px tall, inset 10 px each side, decoration only.
+            RectTransform divider = HudTheme.AddDivider(header).rectTransform;
+            divider.anchorMin = new Vector2(0f, 0f);
+            divider.anchorMax = new Vector2(1f, 0f);
+            divider.pivot = new Vector2(0.5f, 0f);
+            divider.offsetMin = new Vector2(10f, 0f);
+            divider.offsetMax = new Vector2(-10f, 1f);
         }
 
         private void EnsureEventSystem()
@@ -196,24 +253,6 @@ namespace Formify.Presentation
 #else
             _createdEventSystem.AddComponent<StandaloneInputModule>();
 #endif
-        }
-
-        private static void ApplyVerticalLayout(GameObject target, float spacing)
-        {
-            VerticalLayoutGroup layout = target.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = spacing;
-            layout.childAlignment = TextAnchor.UpperLeft;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-        }
-
-        private static RectTransform NewUiObject(string objectName, Transform parent)
-        {
-            GameObject go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
         }
 
         private void OnDestroy()
