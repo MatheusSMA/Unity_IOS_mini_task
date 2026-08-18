@@ -5,7 +5,9 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Formify.Domain",
-        "Formify.Presentation"
+        "Formify.Presentation",
+        "Formify.Editor",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

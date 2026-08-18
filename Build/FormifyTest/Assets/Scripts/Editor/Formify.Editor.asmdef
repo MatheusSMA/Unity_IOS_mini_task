@@ -1,0 +1,21 @@
+{
+    "name": "Formify.Editor",
+    "rootNamespace": "Formify.EditorTools",
+    "references": [
+        "Formify.Domain",
+        "Formify.Presentation",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
