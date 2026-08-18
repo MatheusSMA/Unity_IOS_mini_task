@@ -7,12 +7,9 @@
 
 The uGUI layer is built in code with grey boxes and white labels. The `Room Scanner HUD` kit (commit `eb0124a`) sits in `Assets/Sprite/Game UI mockups for Unity/` with a complete handoff — hierarchy, RectTransforms, 9-slice borders, colour roles, TMP settings — and none of it is applied. This task applies it.
 
-Two things in the kit are **not** adopted, because they change behaviour rather than appearance:
+One thing in the kit is **not** adopted, because it changes behaviour rather than appearance: **"Clear asks for confirmation"**. CLR-01 says the Clear button is the only path to the empty state and clears idempotently; adding a confirmation step is a product change, not a restyle. HUD-01 AC5 states the rule — where the kit's copy implies behaviour the spec does not have, the spec wins until a decision supersedes it.
 
-- **"Clear asks for confirmation"** — CLR-01 says the Clear button is the only path to the empty state and clears idempotently. Adding a confirmation step is a product change, not a restyle.
-- **"Window Mode is interactable only while a wall is selected"** with a disabled palette — that is the AD-019 question. The button follows whatever T30 settled; this task only paints it.
-
-HUD-01 AC5 states the rule: where the kit's copy implies behaviour the spec does not have, the spec wins until a decision supersedes it.
+The kit's other implied behaviour, **"Window Mode is interactable only while a wall is selected"** with a disabled palette, *was* adopted: AD-019 made it the spec rule. T30 changes the behaviour; this task paints it, including the state dot that marks window mode active.
 
 ## Technical description
 

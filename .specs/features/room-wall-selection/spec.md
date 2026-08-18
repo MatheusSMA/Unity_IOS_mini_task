@@ -258,7 +258,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 2. WHEN the HUD canvas is created THEN the system SHALL configure it for landscape (device held horizontally, AD-020) and the HUD SHALL reproduce the art kit's layout, proportions and palette; the exact reference resolution is an implementation choice, not a requirement. <!-- event-driven -->
 3. WHILE a surface is selected the surface list SHALL expose the row's selected state through a dedicated field rather than a suffix appended to the row label, and the PlayMode tests SHALL assert that field. <!-- state-driven -->
 4. IF a decorative image is added to the HUD (scanlines, glow, border, divider) THEN the system SHALL set its Raycast Target off so it never consumes taps. <!-- unwanted-behavior -->
-5. IF the art kit's copy implies a behaviour not in this spec (Clear confirmation popup, window mode button disabled instead of hidden) THEN the system SHALL keep the spec's behaviour until a recorded decision supersedes it. <!-- unwanted-behavior -->
+5. IF the art kit's copy implies a behaviour not in this spec — the Clear button asking for confirmation — THEN the system SHALL keep the spec's behaviour (CLR-01: Clear is the only path to the empty state and clears idempotently) until a recorded decision supersedes it. The kit's other implied behaviour, the window mode button disabled instead of hidden, WAS adopted: AD-019 rewrote WIN-01 AC1 and T30 implements it. <!-- unwanted-behavior -->
 
 **Independent Test**: Enter Play mode: the panel, rail, buttons and rows render with the kit's sprites and colours; every existing PlayMode test still passes; tapping through a glow or the scanline overlay still selects the surface behind it.
 
