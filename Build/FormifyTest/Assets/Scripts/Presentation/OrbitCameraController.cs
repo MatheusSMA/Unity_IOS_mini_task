@@ -42,7 +42,23 @@ namespace Formify.Presentation
         {
             _roomCentre = centre;
             _roomBounds = bounds;
+            AdoptAuthoredRotation();
             ResetToRoomCentre();
+        }
+
+        /// <summary>
+        /// Play starts looking wherever the camera was aimed in the scene - the app opens facing a wall because
+        /// someone pointed it at one in the inspector. Read back rather than held as a second serialized copy,
+        /// so there is one source for the start pose; a rig built in code carries no rotation and still starts
+        /// at zero, which is what every test here assumes.
+        /// </summary>
+        private void AdoptAuthoredRotation()
+        {
+            Vector3 euler = transform.rotation.eulerAngles;
+            Yaw = Mathf.Repeat(euler.y, 360f);
+            // Euler X is -Pitch (see ApplyRotation), and DeltaAngle turns 356 back into -4.
+            Pitch = Mathf.Clamp(-Mathf.DeltaAngle(0f, euler.x), minPitch, maxPitch);
+            ApplyRotation();
         }
 
         public void OnDrag(Vector2 delta)
