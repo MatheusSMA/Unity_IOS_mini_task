@@ -47,6 +47,9 @@ namespace Formify.Presentation
 
         public SurfaceView CeilingView { get; private set; }
 
+        /// <summary>The floor view, so the plan can take it out of the render (TOP-01 AC2) without a lookup.</summary>
+        public SurfaceView FloorView { get; private set; }
+
         public InputRouter Input { get; private set; }
 
         public OrbitCameraController OrbitCamera { get; private set; }
@@ -103,6 +106,7 @@ namespace Formify.Presentation
 
                 _views.Add(view);
                 if (surface.kind == SurfaceKind.Ceiling) CeilingView = view;
+                if (surface.kind == SurfaceKind.Floor) FloorView = view;
             }
 
             if (buildRuntimeComposition) Compose();
@@ -200,7 +204,7 @@ namespace Formify.Presentation
                 Modes.ArSessionEndRequested += StopArSession;
 
                 TopDown = gameObject.AddComponent<TopDownController>();
-                TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, RoomBounds);
+                TopDown.Configure(Modes, Model, OrbitCamera, camera, CeilingView, FloorView, RoomBounds);
             }
 
             // ArToggleButton.Configure wires its own onClick; wiring it here too would fire OnClick twice and

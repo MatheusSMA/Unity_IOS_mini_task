@@ -53,6 +53,7 @@ namespace Formify.Tests.PlayMode
         private MeshRenderer _ceilingRenderer;
         private MeshCollider _ceilingCollider;
         private MeshCollider _floorCollider;
+        private MeshRenderer _floorRenderer;
 
         [UnitySetUp]
         public IEnumerator SetUp()
@@ -86,9 +87,10 @@ namespace Formify.Tests.PlayMode
 
             SurfaceView floor = CreateView(_model.GetSurface(FloorId));
             _floorCollider = floor.GetComponent<MeshCollider>();
+            _floorRenderer = floor.GetComponent<MeshRenderer>();
 
             _controller = Spawn("TopDownController").AddComponent<TopDownController>();
-            _controller.Configure(_modes, _model, _orbit, _camera, ceiling, _roomBounds);
+            _controller.Configure(_modes, _model, _orbit, _camera, ceiling, floor, _roomBounds);
 
             yield return new WaitForFixedUpdate();
         }
@@ -111,6 +113,27 @@ namespace Formify.Tests.PlayMode
             _ceilingRenderer = null;
             _ceilingCollider = null;
             _floorCollider = null;
+            _floorRenderer = null;
+        }
+
+        /// <summary>
+        /// TOP-01 AC2 for the floor: from straight above it is a grey lid over the room, so its renderer goes
+        /// with the ceiling's. Its collider must NOT - TOP-02 AC8 picks a wall out of a tap that lands on the
+        /// floor within tolerance, and that tap has to hit something.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Entering2D_HidesTheFloorRenderer_ButKeepsItsCollider()
+        {
+            Assert.IsTrue(_modes.TrySet(Mode.TopDown));
+            yield return Settle();
+
+            Assert.IsFalse(_floorRenderer.enabled, "the floor still renders under the plan camera");
+            Assert.IsTrue(_floorCollider.enabled, "the floor collider is what the wall-tap tolerance hits");
+
+            Assert.IsTrue(_modes.TrySet(Mode.Orbit));
+            yield return Settle();
+
+            Assert.IsTrue(_floorRenderer.enabled, "the floor did not come back in 3D");
         }
 
         [UnityTest]

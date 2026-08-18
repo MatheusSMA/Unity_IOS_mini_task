@@ -46,6 +46,7 @@ namespace Formify.Presentation
         private OrbitCameraController _orbitCamera;
         private Camera _camera;
         private SurfaceView _ceilingView;
+        private SurfaceView _floorView;
         private Bounds _roomBounds;
 
         private bool _active;
@@ -117,7 +118,7 @@ namespace Formify.Presentation
 
         /// <summary>Binds everything this needs and subscribes to the mode side-effects. Safe to call again.</summary>
         public void Configure(ModeManager modes, RoomModel model, OrbitCameraController orbitCamera,
-                              Camera roomCamera, SurfaceView ceilingView, Bounds roomBounds)
+                              Camera roomCamera, SurfaceView ceilingView, SurfaceView floorView, Bounds roomBounds)
         {
             Unsubscribe();
 
@@ -126,6 +127,7 @@ namespace Formify.Presentation
             _orbitCamera = orbitCamera;
             _camera = roomCamera;
             _ceilingView = ceilingView;
+            _floorView = floorView;
             _roomBounds = roomBounds;
 
             if (_modes == null) return;
@@ -149,6 +151,7 @@ namespace Formify.Presentation
             _active = true;
 
             SetCeilingEnabled(false);
+            SetFloorVisible(false);
 
             BeginTransition(true);
         }
@@ -157,6 +160,7 @@ namespace Formify.Presentation
         public void ExitToOrbit()
         {
             SetCeilingEnabled(true);
+            SetFloorVisible(true);
             _active = false;
 
             BeginTransition(false);
@@ -333,6 +337,19 @@ namespace Formify.Presentation
 
             MeshCollider meshCollider = _ceilingView.GetComponent<MeshCollider>();
             if (meshCollider != null) meshCollider.enabled = enabled;
+        }
+
+        /// <summary>
+        /// The floor is straight under the plan camera and reads as a grey lid over the room, so its renderer
+        /// goes with the ceiling's. Only the renderer: TOP-02 AC8 selects a wall from a tap that lands on the
+        /// floor within tolerance, and that tap needs the floor collider to hit.
+        /// </summary>
+        private void SetFloorVisible(bool visible)
+        {
+            if (_floorView == null) return;
+
+            MeshRenderer meshRenderer = _floorView.GetComponent<MeshRenderer>();
+            if (meshRenderer != null) meshRenderer.enabled = visible;
         }
 
         private void CaptureCameraState()
