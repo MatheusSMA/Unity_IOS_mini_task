@@ -82,7 +82,7 @@ Specify → Design → Tasks → Execute, with the documents kept under `.specs/
 
 - **`spec.md`** — requirements in EARS form, each with an id, traced to its tasks and tests.
 - **`design.md`** — the object graph and the event flow.
-- **`tasks.md`** — 39 atomic tasks; nothing was implemented that was not first a task.
+- **`tasks.md`** — 40 atomic tasks; nothing was implemented that was not first a task.
 - **`validation.md`** — per requirement: where it is satisfied, which test asserts it, and what is *not*
   asserted.
 - **`STATE.md`** — 30 numbered decisions with the reasoning behind each.

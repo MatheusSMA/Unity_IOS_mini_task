@@ -77,7 +77,7 @@ may be up to 6 m per axis, the readout reports the rectangle under the finger wh
 plan view hides the floor's renderer while keeping its collider. `README_NEW.md` at the repo root is the
 human-readable tour written to replace `README.md`; `docs/tecnico.md` stays the technical one.
 
-**Gate, 2026-08-18 after T39: EditMode 83/83, PlayMode 132/132, console clean.** The hold on the runner was
+**Gate, 2026-08-18 after T40: EditMode 83/83, PlayMode 132/132, console clean.** The hold on the runner was
 lifted and everything from T33 on ran at once. It caught three defects, all in test infrastructure rather than
 feature code - the baker fixture could not create its scene under the EditMode runner, a second `InputRouter`
 added a second simulated touchscreen, and two expectations had gone stale under the 5.2 plan opening and AD-027.

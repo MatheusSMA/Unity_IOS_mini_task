@@ -1225,7 +1225,7 @@ Phase 8:  T33 → T34 → T35
           T35, T37 → T38 → T39
 ```
 
-Execution was strictly sequential through T34. 39 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
+Execution was strictly sequential through T34. 40 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
 
 ---
 
@@ -1392,3 +1392,27 @@ still intent, not tasks - no acceptance criteria yet, and two of them move rules
 | B4 | A drag that starts inside an existing window still orbits the camera | SEL-03, WIN-02, `WindowDrawController`, `RoomBootstrap.OnDragDelta` | Windows already route drags for their own gesture; which mode owns a drag that begins over a window has to be stated per mode (Orbit vs WindowDraw) |
 | B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | **Done - T35**, TOP-01 AC7 and AC10: 1.25x pull-back, 0.35 s SmoothStep both ways, camera input dropped while it flies |
 | B6 | The room is bigger and more rectangular | ROOM-01 assumptions, `RoomBootstrap.roomSize` | **Done - T36**: 9 x 5 m, in both the `RoomBootstrap` default and the serialized value on the scene's Room object. Nothing camera-side needed changing - the orbit rig clamps off `RoomBounds` and the plan view fits off `_roomBounds.extents`, so both reframed themselves - and the window limits are wall-local, so only the walls got longer |
+
+---
+
+### T40: Open the app facing a wall
+
+**Done** - landed 2026-08-18.
+
+**What**: The rig started at yaw 0, which points at a corner. `OrbitCameraController.ConfigureRoom` now reads the
+rotation the camera carries in the scene and takes it as the starting yaw and pitch, and the scene camera is
+authored at Euler (4, -79) - a slight look-down, facing a wall. Reading it back rather than holding a second
+serialized copy keeps the inspector as the single source, and a rig built in code still has no rotation and so
+still starts at zero, which is what every camera test assumes.
+**Where**: `Assets/Scripts/Presentation/OrbitCameraController.cs`, `Assets/Scenes/Main.unity`
+**Depends on**: T35
+**Requirement**: CAM-01 (start pose is an assumption, not a rule)
+
+**Done when**:
+
+- [x] Play opens looking at a wall, at eye height in the room centre
+- [x] No test changed: a code-built rig carries no rotation and still starts at zero
+- [x] Gate: EditMode 83/83, PlayMode 132/132 (2026-08-18)
+
+**Commit**: `[feat] open the app facing a wall`
+

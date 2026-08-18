@@ -38,6 +38,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | Docs and UI language | English | User expressed no preference; consistent with English commit convention and English README deliverable | y |
 | Camera pitch clamp values | -60 deg to +60 deg, tunable via serialized field | Prevents flipping through floor/ceiling; exact bounds are a tuning knob | n |
 | Tap vs drag discrimination | Movement under 20 px (DPI-scaled) and under 300 ms counts as tap; otherwise drag | Standard mobile heuristic; prevents orbit gestures from moving the selection | n |
+| Initial camera aim | Whatever the Main Camera carries in the scene - today Euler (4, -79), which opens facing a wall rather than a corner | The rig reads the authored rotation on `ConfigureRoom`, so the inspector is the single source | y |
 | Room dimensions | 9 m x 5 m footprint, 2.8 m wall height (was 6 x 4 until 2026-08-18, widened on the owner's request - B6) | Typical room scale; exact dimensions are cosmetic and tunable | y |
 | Surface thickness | 0.15 m default, serialized per surface | Typical interior wall; makes window reveals visible | n |
 | Minimum window size | 0.2 m x 0.2 m | Prevents accidental micro-windows from a tap-like drag | n |
