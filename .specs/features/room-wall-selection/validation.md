@@ -356,7 +356,7 @@ being written by the author of that change.
 | Suite | Result | Evidence |
 | ----- | ------ | -------- |
 | EditMode | 83/83 | Unity `run_tests`, job `ff57ea9a`, 2026-08-18 (67 at the Phase 6 gate, 16 added since) |
-| PlayMode | 128/128 | Unity `run_tests`, job `35b7d98e`, 2026-08-18 (92 at the Phase 6 gate, 36 added since) |
+| PlayMode | 132/132 | Unity `run_tests`, job `56ceec8d`, 2026-08-18 (92 at the Phase 6 gate, 40 added since) |
 | Console | 0 errors, 0 warnings | Unity `read_console` after a forced refresh + compile |
 
 **T33, later the same day:** the HUD moved out of play and into `Main.unity` (AD-025), and six EditMode cases were added in `HudSceneBakerTests`. The suites were not re-run - the owner asked for the test runner to be held - so the numbers above are the last measured ones. What was verified for T33: a forced Unity refresh + compile with a clean console, and the bake itself running against `Main.unity` (hierarchy read back through `manage_scene`).
@@ -486,3 +486,17 @@ Three failures, three different kinds, none of them in the feature code the task
 
 The first two are the interesting ones: both are test-infrastructure defects that no amount of compiling would
 have found, and both were introduced in tasks whose feature code was correct.
+
+### T39 — the mouse as a first-class pointer (AD-030)
+
+| Rule | Where it is satisfied | Where it is asserted |
+| ---- | --------------------- | -------------------- |
+| SEL-03 AC8 — a mouse taps and drags like a finger | `InputRouter.TryTrackMouse` / `UpdateMouse`, sharing the machine and the thresholds with the touch path | `InputRouterTests.MouseClickRaisesTappedOnce`, `.MouseDraggedPastThresholdRaisesDragAndNeverTaps` |
+| A finger takes precedence | the mouse is only offered the gesture when `Touch.activeTouches` is empty and nothing is tracked | `InputRouterTests.MouseIsIgnoredWhileAFingerIsDown` |
+| EDGE-02 covers the mouse | the gate is asked with uGUI's left-button pointer id (-1) before the gesture starts | `InputRouterTests.MousePressOverUiProducesNoEvents` |
+
+**What this deleted:** `TouchSimulation` — the editor-only mouse-to-touch shim — is gone from `InputRouter`, and
+with it the two `TouchSimulation.Destroy()` workarounds the input fixtures carried. The "[Assert] Already added
+touchscreen" noise still exists, but it is now provably not ours: it comes from the Device Simulator window
+keeping TouchSimulation alive across the input-system resets those fixtures do. `RoomBootstrapTests` ignores
+failing log messages for that reason, and says so.

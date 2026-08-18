@@ -1154,6 +1154,45 @@ to agree rather than proven to agree, because proving it needs play mode.
 
 ---
 
+### T39: Make the mouse a first-class pointer (AD-030)
+
+**Done** - landed 2026-08-18. Brought AD-030 with it.
+
+**What**: Selecting a surface worked in the Device Simulator and nowhere else. The room reads EnhancedTouch, and
+outside the simulator the only bridge from a mouse was `TouchSimulation` - an editor-only global singleton, and
+the source of the "Already added touchscreen" assert that had broken three tests. A desktop build had no pointer
+at all. The HUD was fine throughout, because uGUI reads the mouse on its own, which is exactly why the symptom
+looked so odd: buttons worked, the room did not.
+
+`InputRouter` now reads the mouse itself. Same gesture machine, same tap-versus-drag thresholds, same EDGE-02
+gate (asked with uGUI's left-button pointer id). A finger takes precedence: the mouse is only offered the
+gesture when no touch is on screen and nothing is tracked, and it needs a fresh press, so lifting a finger with
+the button already down starts nothing. `TouchSimulation` is deleted from the router, and the two
+`TouchSimulation.Destroy()` workarounds went with it.
+**Where**: `Assets/Scripts/Presentation/InputRouter.cs`, `Assets/Tests/PlayMode/InputRouterTests.cs`,
+`RoomBootstrapTests.cs`, `RoomBootstrapDragRoutingTests.cs`
+**Depends on**: T38
+**Requirement**: SEL-03 AC8, AD-030
+
+**Done when**:
+
+- [x] A click in the Game view selects a surface; a drag orbits; neither needs the Device Simulator
+- [x] A finger still wins while one is down, and the mouse cannot open a second gesture under it
+- [x] EDGE-02 holds for the mouse - a press over the HUD reaches nothing behind it
+- [x] `TouchSimulation` is out of the runtime path, and the fixtures no longer work around it
+- [x] Gate: EditMode 83/83, PlayMode 132/132 (2026-08-18)
+
+**Tests**: PlayMode - `MouseClickRaisesTappedOnce`, `MouseDraggedPastThresholdRaisesDragAndNeverTaps`,
+`MouseIsIgnoredWhileAFingerIsDown`, `MousePressOverUiProducesNoEvents`
+
+**Commit**: `[feat] let the mouse drive the same gestures as a finger`
+
+**Known noise**: with the Device Simulator window open, Unity keeps its own TouchSimulation alive for the whole
+session, and the two `InputTestFixture` fixtures reset the input system under it - which logs "[Assert] Already
+added touchscreen". It is the editor's, not ours; `RoomBootstrapTests` ignores failing log messages and says why.
+
+---
+
 ## Phase Execution Map
 
 ```
@@ -1183,10 +1222,10 @@ Phase 7:  T32 → T33
 Phase 8:  T33 → T34 → T35
           T34 → T36
           T34 → T37
-          T35, T37 → T38
+          T35, T37 → T38 → T39
 ```
 
-Execution was strictly sequential through T34. 38 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
+Execution was strictly sequential through T34. 39 tasks total, all done. T35, T36 and T37 ran in parallel - one sub-agent each, because they share no file; T37 was held back until T36 released `RoomBootstrap.cs`. Phases 1-5 (29 tasks) were verified in `validation.md`; Phases 6 and 7 fitted a single batch each and ran inline; Phase 8 fanned out to three sub-agents on the owner's instruction.
 
 ---
 

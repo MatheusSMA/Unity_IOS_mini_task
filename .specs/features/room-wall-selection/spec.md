@@ -109,6 +109,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 5. IF a touch moves more than the tap threshold or lasts longer than the tap duration THEN the system SHALL treat it as a camera drag and SHALL NOT change the selection. <!-- unwanted-behavior -->
 6. IF a tap ray passes through a window opening and hits no surface THEN the system SHALL leave the selection unchanged. <!-- unwanted-behavior -->
 7. IF a tap hits a window opening's collider THEN the system SHALL select that window - clearing any surface selection (AD-026) - and SHALL show the deletion affordance for it (WIN-04). Superseded AD-014 on 2026-08-18 (AD-028): the tap used to be routed to the window without touching the selection at all. <!-- event-driven -->
+8. The system SHALL accept the same tap and drag gestures from a mouse as from a finger, with a finger taking precedence while one is on screen, so the Editor Game view and any desktop build are usable without a touchscreen (AD-030). <!-- ubiquitous -->
 
 **Independent Test**: Tap Wall 1 (selected + tinted), tap Wall 2 (Wall 2 selected, Wall 1 deselected in the same frame), tap Wall 2 again (still selected, no flicker), tap floor (floor selected, Wall 2 deselected); drag over a surface never changes selection.
 

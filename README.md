@@ -47,7 +47,7 @@ The world around the room matches: black sky, grey ground, nothing competing wit
 
 ## Tests
 
-83 EditMode and 128 PlayMode, all green. The ones that earn their place:
+83 EditMode and 132 PlayMode, all green. The ones that earn their place:
 
 - **Window rules** — overlap, minimum and maximum size, edge margin, clamping into the wall. Pure domain, no
   scene, and the reason the geometry can be trusted.
@@ -82,10 +82,10 @@ Specify → Design → Tasks → Execute, with the documents kept under `.specs/
 
 - **`spec.md`** — requirements in EARS form, each with an id, traced to its tasks and tests.
 - **`design.md`** — the object graph and the event flow.
-- **`tasks.md`** — 38 atomic tasks; nothing was implemented that was not first a task.
+- **`tasks.md`** — 39 atomic tasks; nothing was implemented that was not first a task.
 - **`validation.md`** — per requirement: where it is satisfied, which test asserts it, and what is *not*
   asserted.
-- **`STATE.md`** — 29 numbered decisions with the reasoning behind each.
+- **`STATE.md`** — 30 numbered decisions with the reasoning behind each.
 
 The payoff shows on change requests. "Put the windows in the list" was not a guess about what it touched: the
 requirement map named the requirements involved, and the decision log said why selection was a single integer —
