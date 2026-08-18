@@ -40,6 +40,7 @@ namespace Formify.Presentation
         float startTime;
         bool isDrag;
         bool touchEnabled;
+        bool ownsTouchSimulation;
 
         float MoveThreshold => Screen.dpi > 0f ? tapMovePixels * (Screen.dpi / 160f) : tapMovePixels;
 
@@ -49,7 +50,15 @@ namespace Formify.Presentation
             touchEnabled = true;
             EnhancedTouchSupport.Enable();
             #if UNITY_EDITOR
-            TouchSimulation.Enable();   // EnhancedTouch has no native mouse events; the mouse stands in for touch.
+            // EnhancedTouch has no native mouse events; the mouse stands in for touch. TouchSimulation is a
+            // global singleton, though, and a second router enabling it adds a second touchscreen - Unity
+            // asserts "Already added touchscreen" and every test in the fixture fails on the log. The instance
+            // flag above cannot see that, so ask the singleton, and only switch off what this router switched on.
+            if (TouchSimulation.instance == null)
+            {
+                TouchSimulation.Enable();
+                ownsTouchSimulation = true;
+            }
             #endif
         }
 
@@ -58,7 +67,11 @@ namespace Formify.Presentation
             if (!touchEnabled) return;
             touchEnabled = false;
             #if UNITY_EDITOR
-            TouchSimulation.Disable();      // no-op when there is no instance
+            if (ownsTouchSimulation)
+            {
+                TouchSimulation.Disable();
+                ownsTouchSimulation = false;
+            }
             #endif
             EnhancedTouchSupport.Disable(); // no-op when the input system was already reset under us
             trackedId = -1;

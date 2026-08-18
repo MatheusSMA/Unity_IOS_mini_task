@@ -2,6 +2,7 @@ using Formify.Domain;
 using Formify.Presentation;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Formify.Tests.PlayMode
 {
@@ -22,6 +23,12 @@ namespace Formify.Tests.PlayMode
         [SetUp]
         public void SetUp()
         {
+            // The two InputTestFixture-based fixtures restore the input system after themselves, which can bring
+            // back the simulated touchscreen TouchSimulation had already claimed; the next router to come up logs
+            // "[Assert] Already added touchscreen". Nothing here touches input - it builds a room and reads it
+            // back - so that leaked assert is noise, and without this it fails every test in the fixture.
+            LogAssert.ignoreFailingMessages = true;
+
             _go = new GameObject("RoomBootstrap");
             _bootstrap = _go.AddComponent<RoomBootstrap>(); // Awake runs here
         }
@@ -29,6 +36,8 @@ namespace Formify.Tests.PlayMode
         [TearDown]
         public void TearDown()
         {
+            LogAssert.ignoreFailingMessages = false;
+
             if (_go != null) Object.DestroyImmediate(_go);
         }
 
