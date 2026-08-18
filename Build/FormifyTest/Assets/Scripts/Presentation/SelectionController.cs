@@ -4,7 +4,11 @@ using UnityEngine;
 
 namespace Formify.Presentation
 {
-    /// <summary>A tap target that answers instead of the selection. T23's WindowView implements it (AD-014).</summary>
+    /// <summary>
+    /// A tap target that answers before the surface under it. T23's WindowView implements it (AD-014).
+    /// B2 changed what the answer is: the target now makes itself the selection instead of leaving the
+    /// selection alone. This controller still only routes — it never learns what a window is.
+    /// </summary>
     public interface IWindowTapTarget
     {
         void OnTapped();
@@ -67,7 +71,9 @@ namespace Formify.Presentation
             if (!Physics.Raycast(raycastCamera.ScreenPointToRay(screenPosition), out RaycastHit hit,
                     maxRayDistance, _mask)) return;
 
-            // 2. A window owns its own tap and never touches the selection (AD-014, SEL AC7).
+            // 2. A window wins the tap from the surface behind it and selects ITSELF through the model (B2),
+            //    which clears any selected surface (AD-026). Supersedes AD-014 / SEL AC7, where the tap only
+            //    raised the delete affordance and the surface selection stood.
             IWindowTapTarget window = hit.collider.GetComponentInParent<IWindowTapTarget>();
             if (window != null)
             {

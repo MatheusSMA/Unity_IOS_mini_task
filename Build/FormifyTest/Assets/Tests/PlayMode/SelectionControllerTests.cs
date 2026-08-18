@@ -15,6 +15,13 @@ namespace Formify.Tests.PlayMode
         private static readonly Vector3 WallBCentre = new Vector3(1.75f, 1.4f, 2f);
         private static readonly Vector3 WallSize = new Vector3(2.5f, 2.8f, 0.15f);
 
+        // A window on wall A, wall-local. Its centre is (1.25, 1.3) -> world (-1.75, 1.3, 2).
+        private static readonly Rect2D WindowRect = new Rect2D(0.8f, 0.8f, 0.9f, 1.0f);
+
+        // Where the test parks that window's collider: same centre, pulled a metre off the wall so the ray
+        // meets it before the fixture's wall box (which, unlike the real slab, has no hole cut in it).
+        private static readonly Vector3 WindowInFront = new Vector3(-1.75f, 1.3f, 1f);
+
         private readonly List<GameObject> _spawned = new List<GameObject>();
 
         private Camera _camera;
@@ -152,8 +159,13 @@ namespace Formify.Tests.PlayMode
             yield break;
         }
 
+        /// <summary>
+        /// The routing half, with a target that does nothing: the window in front of the wall wins the tap and
+        /// the controller itself never selects the surface behind it. What a real target does with the tap is
+        /// its own business (B2) and is asserted below and in WindowViewTests.
+        /// </summary>
         [UnityTest]
-        public IEnumerator A_window_target_takes_the_tap_and_the_selection_stands()
+        public IEnumerator A_window_target_takes_the_tap_from_the_surface_behind_it()
         {
             _controller.OnTap(ScreenPositionOf(WallACentre));
             _events = 0;
@@ -171,6 +183,67 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(1, spy.Taps);
             Assert.AreEqual(0, _events);
             Assert.AreEqual(_wallA.id, _model.SelectedSurfaceId);
+        }
+
+        /// <summary>
+        /// B2 — a tap on a real window is a selection: the model's window selection moves to it and the surface
+        /// selection is cleared on the way (AD-026). This is what AD-014 / SEL-03 AC7 used to forbid.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Tapping_a_window_selects_it_and_clears_the_surface_selection()
+        {
+            _controller.OnTap(ScreenPositionOf(WallACentre));
+            Assert.AreEqual(_wallA.id, _model.SelectedSurfaceId, "precondition: a surface is selected");
+            _events = 0;
+
+            WindowSpec spec = CreateWindowOnWallA();
+            yield return new WaitForFixedUpdate();
+
+            _controller.OnTap(ScreenPositionOf(WindowInFront));
+
+            Assert.AreEqual(spec.id, _model.SelectedWindowId, "the window took the selection");
+            Assert.IsNull(_model.SelectedSurfaceId, "AD-026: the surface selection went with it");
+            Assert.AreEqual(1, _events, "one SelectionChanged, reporting the surface being cleared");
+            Assert.AreEqual(_wallA.id, _previous);
+            Assert.IsNull(_current);
+        }
+
+        /// <summary>The other direction of AD-026: the wall takes the selection back off the window.</summary>
+        [UnityTest]
+        public IEnumerator Tapping_a_wall_after_a_window_clears_the_window_selection()
+        {
+            WindowSpec spec = CreateWindowOnWallA();
+            yield return new WaitForFixedUpdate();
+
+            _controller.OnTap(ScreenPositionOf(WindowInFront));
+            Assert.AreEqual(spec.id, _model.SelectedWindowId, "precondition: the window is selected");
+
+            _controller.OnTap(ScreenPositionOf(WallBCentre));
+
+            Assert.AreEqual(_wallB.id, _model.SelectedSurfaceId, "the wall took the selection");
+            Assert.IsNull(_model.SelectedWindowId, "and the window lost it");
+        }
+
+        /// <summary>
+        /// A real WindowView bound to a real window in the model, parked in front of wall A. No canvas: this
+        /// fixture only cares that the tap reaches the model, not what the affordance looks like.
+        /// </summary>
+        private WindowSpec CreateWindowOnWallA()
+        {
+            Assert.IsTrue(_model.TryAddWindow(_wallA.id, WindowRect, out WindowRejection reason),
+                "precondition: the window is accepted");
+            Assert.AreEqual(WindowRejection.None, reason);
+
+            WindowSpec spec = _model.GetWindows(_wallA.id)[0];
+
+            GameObject windowObject = Spawn("Window View");
+            WindowView view = windowObject.AddComponent<WindowView>();
+            view.Initialize(spec, _wallA, _model, null);
+            // Initialize embeds the collider in the wall slab; move it clear of the fixture's solid wall box.
+            windowObject.transform.position = WindowInFront;
+            Physics.SyncTransforms();
+
+            return spec;
         }
 
         private void OnSelectionChanged(int? previous, int? current)

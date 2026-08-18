@@ -153,32 +153,94 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(_spec.id, hitView.Spec.id);
         }
 
+        /// <summary>
+        /// B2 — the tap SELECTS the window (clearing the surface selection, AD-026) and the delete affordance
+        /// follows from that selection. This is the promise B2 breaks: AD-014 / SEL-03 AC7 had a window tap
+        /// raise the X and leave the selection exactly where it was.
+        /// </summary>
         [UnityTest]
-        public IEnumerator OnTapped_ShowsTheDeleteButtonAndLeavesTheSelectionUntouched()
+        public IEnumerator OnTapped_SelectsTheWindowAndTheDeleteAffordanceFollows()
         {
             yield return null;
 
             _model.Select(WallId);
-            int? before = _model.SelectedSurfaceId;
             int selectionEvents = 0;
             _model.SelectionChanged += (previous, current) => selectionEvents++;
 
             WindowView view = SingleView();
             Assert.IsFalse(view.IsDeleteButtonShown, "no X before the tap");
+            Assert.IsFalse(view.IsSelectionBorderShown, "and no border either");
 
             view.OnTapped();
             yield return null;
 
-            Assert.IsTrue(view.IsDeleteButtonShown, "AC2: the X is shown");
+            Assert.AreEqual(_spec.id, _model.SelectedWindowId, "the tap made the window the selection");
+            Assert.IsNull(_model.SelectedSurfaceId, "AD-026: the surface selection was cleared");
+            Assert.AreEqual(1, selectionEvents, "one SelectionChanged, for the surface going away");
+
+            Assert.IsTrue(view.IsDeleteButtonShown, "AC2: the X belongs to the selected window");
             Assert.IsNotNull(view.DeleteButton, "the X is a uGUI button");
             Assert.IsTrue(view.DeleteButton.gameObject.activeInHierarchy, "the X GameObject is active");
             Assert.AreSame(_canvas.transform, view.DeleteButton.transform.parent, "the X lives on the UI canvas");
             Assert.IsFalse(view.IsConfirmationShown, "the popup waits for the X click");
+        }
 
-            // SEL-03 AC7: routing a tap to a window never moves the selection.
-            Assert.AreEqual(WallId, before, "the wall was selected before the tap");
-            Assert.AreEqual(before, _model.SelectedSurfaceId, "selection unchanged after the tap");
-            Assert.AreEqual(0, selectionEvents, "no SelectionChanged was raised");
+        /// <summary>
+        /// The delete affordance belongs to the SELECTED window, so it leaves with the selection. That is also
+        /// what stops the X lingering over a window the selection has long since moved off.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator MovingTheSelectionElsewhere_TakesTheDeleteAffordanceWithIt()
+        {
+            yield return null;
+
+            WindowView view = SingleView();
+            view.OnTapped();
+            view.DeleteButton.onClick.Invoke();
+            Assert.IsTrue(view.IsDeleteButtonShown, "precondition: the X is up");
+            Assert.IsTrue(view.IsConfirmationShown, "precondition: so is the popup");
+
+            _model.Select(WallId);   // selecting a surface clears the window selection (AD-026)
+            yield return null;
+
+            Assert.IsNull(_model.SelectedWindowId, "the window is no longer the selection");
+            Assert.IsFalse(view.IsDeleteButtonShown, "the X went with it");
+            Assert.IsFalse(view.IsSelectionBorderShown, "and so did the border");
+            Assert.IsFalse(view.IsConfirmationShown, "an open popup does not outlive the selection either");
+        }
+
+        /// <summary>
+        /// B2 feedback in the room view: the kit's `window_border_9s` in HudTheme.Accent, laid over the
+        /// opening's projected rect. The camera looks square at the wall, so the projected quad is
+        /// axis-aligned and the border spans exactly bottom-left to top-right.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SelectedWindow_IsOutlinedOverTheOpeningInTheAccent()
+        {
+            yield return null;
+
+            WindowView view = SingleView();
+            view.OnTapped();
+            yield return null;   // LateUpdate re-projects the opening
+
+            Assert.IsTrue(view.IsSelectionBorderShown, "the selected window is outlined in the room view");
+
+            var border = (RectTransform)_canvas.transform.Find("WindowSelectionBorder");
+            Assert.IsNotNull(border, "the border lives on the UI canvas");
+
+            Vector2 bottomLeft = ScreenCorner(WindowRect.x, WindowRect.y);
+            Vector2 topRight = ScreenCorner(WindowRect.XMax, WindowRect.YMax);
+            Vector2 centre = (bottomLeft + topRight) * 0.5f;
+
+            Assert.AreEqual(centre.x, border.position.x, 0.5f, "centred on the opening (x)");
+            Assert.AreEqual(centre.y, border.position.y, 0.5f, "centred on the opening (y)");
+            Assert.AreEqual(Mathf.Abs(topRight.x - bottomLeft.x), border.sizeDelta.x, 0.5f, "as wide as the opening");
+            Assert.AreEqual(Mathf.Abs(topRight.y - bottomLeft.y), border.sizeDelta.y, 0.5f, "as tall as the opening");
+
+            Image image = border.GetComponentInChildren<Image>();
+            Assert.IsNotNull(image, "the border is drawn by an Image");
+            Assert.AreEqual(HudTheme.Accent, image.color, "painted in the kit's selected accent");
+            Assert.IsFalse(image.raycastTarget, "HUD-01 AC4: the border never eats a tap meant for the room");
         }
 
         /// <summary>Screen point of one opening corner, in surface-local metres.</summary>

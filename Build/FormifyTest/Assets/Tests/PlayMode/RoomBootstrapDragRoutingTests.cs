@@ -125,6 +125,40 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(ExpectedRect.height, windows[0].rect.height, 0.02f, "rect height in wall-local metres");
         }
 
+        /// <summary>
+        /// B4 — the finger comes down on an existing window's collider, so the ray never reaches the wall and
+        /// no draw starts. Window mode used to hand every delta to the draw controller anyway and the gesture
+        /// died there; now a drag that started no draw turns the camera, exactly as it would in Orbit.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator InWindowDraw_ADragStartingOverAWindowTurnsTheCameraInstead()
+        {
+            bootstrap.Model.Select(Wall3Id);
+
+            // Wall 3 has origin (4.5, 0, 2.5) and right = -X, so DragFromWorld is wall-local (5.0, 1.0) —
+            // inside this rectangle, which is therefore what the finger lands on.
+            Assert.IsTrue(bootstrap.Model.TryAddWindow(Wall3Id, new Rect2D(3.8f, 0.8f, 1.4f, 1.2f),
+                out WindowRejection reason), "precondition: an existing window sits under the drag start");
+            Assert.AreEqual(WindowRejection.None, reason);
+            Assert.IsTrue(bootstrap.Modes.TrySet(Mode.WindowDraw), "a wall is selected, so WindowDraw is legal");
+
+            // The opening's collider is built on WindowAdded; the raycast has to see it before the drag starts.
+            Physics.SyncTransforms();
+            yield return new WaitForFixedUpdate();
+
+            Vector2 from = ScreenOf(DragFromWorld);
+            Vector2 to = ScreenOf(DragToWorld);
+            float expectedYaw = Mathf.Repeat((to.x - from.x) * DegreesPerPixel, 360f);
+            Assert.Greater(expectedYaw, 1f, "the drag is a real turn, not a rounding error");
+
+            yield return Drag(from, to);
+
+            Assert.AreEqual(expectedYaw, bootstrap.OrbitCamera.Yaw, 0.2f,
+                "B4: a drag that started no draw orbits, window mode or not");
+            Assert.AreEqual(1, bootstrap.Model.GetWindows(Wall3Id).Count,
+                "and the only window on the wall is still the one the test placed");
+        }
+
         [UnityTest]
         public IEnumerator InAr_TheDragGoesNowhereBecauseArOwnsThePose()
         {

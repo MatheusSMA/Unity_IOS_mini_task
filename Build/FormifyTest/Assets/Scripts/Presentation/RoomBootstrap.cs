@@ -291,22 +291,34 @@ namespace Formify.Presentation
             return action;
         }
 
+        /// <summary>
+        /// Unconditional on purpose: WindowDrawController self-gates on the mode and on the wall under the
+        /// finger (AD-013), and a start it refuses leaves IsDrawing false — which is exactly what sends the
+        /// deltas to the camera below (B4).
+        /// </summary>
         private void OnDragStart(Vector2 screenPosition)
         {
             _dragPosition = screenPosition;
             if (WindowDraw != null) WindowDraw.OnDragStart(screenPosition);
         }
 
-        /// <summary>Only Orbit drives the camera from drags: AR owns the pose and WindowDraw owns the gesture.</summary>
+        /// <summary>
+        /// One drag, one owner. The draw owns it only while it is actually running — a drag that began over an
+        /// existing window's collider never latched onto the wall, so in window mode it turns the camera
+        /// instead of doing nothing at all (B4). AR owns the pose (AR-01 AC2) and TopDown reads its own pinch
+        /// (TOP AC9), so neither is in the orbit list.
+        /// </summary>
         private void OnDragDelta(Vector2 delta)
         {
             // InputRouter reports deltas; WindowDrawController wants the live position, so keep the running sum.
             _dragPosition += delta;
 
-            if (WindowDraw != null && Modes.Current == Mode.WindowDraw) WindowDraw.OnDragMove(_dragPosition);
-            else if (OrbitCamera != null && Modes.Current == Mode.Orbit) OrbitCamera.OnDrag(delta);
+            if (WindowDraw != null && WindowDraw.IsDrawing) WindowDraw.OnDragMove(_dragPosition);
+            else if (OrbitCamera != null && (Modes.Current == Mode.Orbit || Modes.Current == Mode.WindowDraw))
+                OrbitCamera.OnDrag(delta);
         }
 
+        /// <summary>Also unconditional: OnDragEnd is a no-op unless a draw is in progress.</summary>
         private void OnDragEnd(Vector2 screenPosition)
         {
             if (WindowDraw != null) WindowDraw.OnDragEnd(screenPosition);
