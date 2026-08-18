@@ -29,6 +29,7 @@
 | AD-022 | The kit's `Readout` and `HintPill` carry live data, not frozen mock-up copy: the readout reports the selected surface's name, its width x height and its window count, and the hint pill's line follows `ModeManager.ModeChanged`. The hint copy also describes the drag WIN-02 implements, not the mock-up's tap-to-place-then-resize-handles | active | 2026-08-18 | The hud-art-kit notes called both nodes decoration. A readout frozen on "WALL 3 / 3.20 x 2.55" while Wall 1 is selected is worse than no readout, and a hint that describes an interaction the app does not have is HUD-01 AC5's failure mode in copy form |
 | AD-023 | The HUD canvas sets `Canvas.vertexColorAlwaysGammaSpace = true`; the palette stays plain sRGB hex, exactly as the kit quotes it | active | 2026-08-18 | The project renders Linear, and there the two halves of uGUI disagree about a vertex colour: TextMeshPro reads it as sRGB, plain `Image` reads it as linear. Painted from one palette, either the text is right and the panels are lifted from near-black to grey, or the panels are right and the captions go unreadable - both were observed on screen. One flag settles it for the whole canvas |
 | AD-024 | The shipped density is the kit's -3x set, copied into `Assets/Resources/HUD/` under base names (`row_fill_9s.png`, `icon_ar.png`, ...) and loaded at runtime with `Resources.Load`. `Assets/Sprite/Game UI mockups for Unity/` stays untouched reference material | active | 2026-08-18 | The HUD is built in code, not from a prefab, so there is no inspector reference to carry a sprite; `Resources` is the only path that does not need one. Moving the -3x files out of the kit folder instead of copying them would strip the handoff of the density it tells you to ship, and the duplicates cost nothing in the build because the kit copies are unreferenced |
+| AD-025 | The HUD is authored into the scene: `HUD/FormifyCanvas` and everything under it are real GameObjects carrying real `Image`, `Button` and `TextMeshProUGUI` components, put there by `Formify/Bake HUD Into Scene` (`HudSceneBaker`) and wired into `RoomBootstrap.hud`. Play builds no HUD any more - `Compose` hands the `HudRoot` in the scene the model, the modes and the handlers, and every view reference is serialized with the scene. `HudRoot.Build` stays the single description of the tree: the bake runs it, and a scene holding no HUD (a bare test scene) falls back to it, so baked and built are the same tree by construction. The room stays generated (ROOM-01); only the HUD is authored | active | 2026-08-18 | Owner decision 2026-08-18. A HUD that exists only inside play cannot be selected, nudged, restyled or reviewed in the editor: every change had to be coded and re-run to be seen, and the scene itself showed nothing but a camera. The cost is that the scene copy does not follow code - a kit change means re-baking - which is why one construction path is kept and the bake runs it, instead of the tree being hand-assembled in the inspector where it would drift from `HudTheme` |
 
 ## Handoff
 
@@ -47,7 +48,22 @@ already wires it, and the bootstrap added the same listener again), so every AR 
 frame; and no panel background was a raycast target, so a tap on the surfaces list fell straight through into the
 room, against EDGE-02. Gate: EditMode 67/67, PlayMode 92/92 (5 new). Both new sensors were checked by mutation -
 scanlines made a raycast target, and the window mode button wired twice - and both mutants were killed.
-**Next step:** Nothing is left to implement. What remains is human UAT: the three checks in `validation.md`
+
+**Phase 7 (this session):** the HUD moved out of play and into the scene (AD-025). `HudRoot` is the new view root
+and carries every reference; `SurfaceListPanel`, `HudButton`, `HudReadout`, `HudHintPill`, `ViewSwitchButtons` and
+`WindowModeButton` serialize the parts they used to assign at construction, so the baked copy paints itself;
+`RoomBootstrap.Compose` binds instead of builds; `HudSceneBaker` (`Formify/Bake HUD Into Scene`) authors the copy
+and points the scene bootstrap at it. The short-lived `HudScenePreview` (a baked copy that deleted itself on play)
+is gone - it existed only because the live HUD was still built in code. Walls and windows are unchanged: still
+generated (ROOM-01, WIN-02).
+
+**Next step:** T33's gate is unrun - the owner asked for the test runner to be held, and EditMode gained six cases
+in `HudSceneBakerTests`. After that, Phase 8: six follow-ups the owner listed on 2026-08-18 - windows as child
+rows under their wall in the surfaces list, window selection going through the model the way wall selection does,
+window mode switching itself off after each placement, a drag that starts inside a window still orbiting, a 2D
+switch that pulls further back and animates both ways, and a bigger, more rectangular room. They are recorded in
+`tasks.md` under "Phase 8 backlog" with what each one moves; none is specified yet, and B2 and B3 change rules
+that SEL-01 and AD-021 already own. Human UAT is still open: the three checks in `validation.md`
 section 7 (outline appearance, AR pose under XR Simulation, the iOS build-target switch) and now the kit's
 appearance on a real landscape device - every screenshot so far was taken at the Editor's Game view aspect
 (1557x1222), which is not the shape the HUD is designed for. `.specs/features/hud-art-kit/context.md` lists the

@@ -960,10 +960,43 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 
 ---
 
+## Phase 7: HUD in the scene
+
+### T33: Author the HUD into the scene + EditMode bake tests
+
+**Done** - landed 2026-08-18, on the owner's request. Recorded as AD-025.
+
+**What**: Take the HUD out of the play-time object graph and put it in `Main.unity` as real GameObjects - canvas, panels, `Button`s and `TextMeshProUGUI` labels the inspector can select and edit - without changing how any of it looks. The kit description stays in code and becomes bake-time: `HudRoot.Build` assembles the tree, `Formify/Bake HUD Into Scene` (`HudSceneBaker`) runs it once on a throwaway scaffold, lifts the root into the scene and wires it into `RoomBootstrap.hud`, and every view serializes the parts it used to assign at construction so the baked copy paints itself. `RoomBootstrap.Compose` no longer builds any view - it binds the model, the modes and the handlers to what the scene holds, and falls back to `HudRoot.Build` only for a scene that has no HUD (a bare test scene), which keeps baked and built the same tree by construction. The room and the windows are untouched: still generated (ROOM-01, WIN-02). The short-lived `HudScenePreview` - a baked copy that deleted itself on play, from when the live HUD was still built in code - is deleted.
+**Where**: `Assets/Scripts/UI/HudRoot.cs` (new), `Assets/Scripts/UI/{HudButton,SurfaceListPanel,HudReadout,HudHintPill,ViewSwitchButtons,WindowModeButton}.cs`, `Assets/Scripts/Presentation/RoomBootstrap.cs`, `Assets/Scripts/Editor/HudSceneBaker.cs` (new), `Assets/Scenes/Main.unity`, `Assets/Tests/EditMode/HudSceneBakerTests.cs`
+**Depends on**: T32
+**Reuses**: the whole kit construction - `HudTheme`, `HudButton`, `SurfaceListPanel`, `SurfaceRow`, `HudReadout`, `HudHintPill`, `ViewSwitchButtons` - run unchanged by the bake
+**Requirement**: HUD-01 (AC1, AC2), AD-025
+
+**Tools**:
+
+- MCP: `unity-mcp` (execute_menu_item, manage_scene, refresh_unity, read_console)
+- Skill: `unity-mcp-skill`
+
+**Done when**:
+
+- [x] `Main.unity` holds `HUD/FormifyCanvas` with `SurfacesPanel`, `RightRail` (window mode, Clear, AR), `ViewToggle`, `Readout`, `HintPill` and `Scanlines` as editable GameObjects, plus a scene-owned `EventSystem`
+- [x] Play builds no HUD: `Compose` only binds, and the scene's `HudRoot` is wired into `RoomBootstrap.hud`
+- [x] Every view reference survives serialization, including the ones a delegate used to carry - the header's collapse click and the window mode button's `onClick` are re-wired on bind
+- [x] The bake leaves no scaffold, camera or bootstrap behind, and reaches into no scene but the active one
+- [x] `HudScenePreview` (the self-deleting preview) is gone, and the menu reads `Formify/Bake HUD Into Scene` / `Formify/Remove HUD From Scene`
+- [ ] Gate: EditMode + PlayMode suites - **not run; the owner asked for the test runner to be held**
+
+**Tests**: EditMode
+**Gate**: build (compile verified through Unity MCP: forced refresh + compile, console clean, and the bake itself ran)
+
+**Commit**: `[feat] author the hud into the scene` (split across five commits: serialization, view root, editor bake, scene data, docs)
+
+---
+
 ## Phase Execution Map
 
 ```
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6
+Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
 
 Phase 1:  T01 → T02 → T03 → T04 → T06
           T01 → T05 → T06
@@ -985,9 +1018,10 @@ Phase 5:  T25 → T26
           T27 → T29
 Phase 6:  T30 → T32
           T31 → T32
+Phase 7:  T32 → T33
 ```
 
-Execution is strictly sequential - one task at a time, in order. 32 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phase 6 (3 tasks) fitted a single batch and ran inline, so no sub-agent offer was made.
+Execution is strictly sequential - one task at a time, in order. 33 tasks total, all done. Phases 1-5 (29 tasks) were verified in `validation.md`; Phase 6 (3 tasks) and Phase 7 (1 task) each fitted a single batch and ran inline, so no sub-agent offer was made.
 
 ---
 
@@ -1137,3 +1171,20 @@ No dependency points to a later phase.
 | HUD-01 | T31, T32 |
 
 25/25 requirements mapped.
+
+---
+
+## Phase 8 backlog - requested 2026-08-18, not yet specified
+
+The owner asked for these after T33. They are recorded here as intent, not as tasks: none has acceptance
+criteria yet, and three of them move rules that other requirements already own (flagged below). Specify before
+implementing.
+
+| # | Asked for | Touches | Open before it can be a task |
+| - | --------- | ------- | ---------------------------- |
+| B1 | A window created on a wall appears in the surfaces list as a child row under that wall; the wall row can collapse its windows, and a window can be selected from the list | LIST-01, LIST-02, `SurfaceListPanel`, `SurfaceRow` | The list is one row per `RoomModel.Surfaces` entry today, and collapse is panel-wide (LIST-02). Per-wall collapse and a second row kind are both new |
+| B2 | Selecting a window behaves like selecting a wall: it clears every other selection, and the list marks the window row selected | SEL-01, LIST-01, `RoomModel.SelectedSurfaceId` | Selection is a single `int?` surface id. Windows carry their own ids, so the model needs one selection space covering both - or the selection becomes a (kind, id) pair. This is a domain change, not a view change |
+| B3 | Window mode switches itself off after each window is placed | WIN-01 AC1, AD-019, AD-021 | AD-021 made the button the visible exit from window mode; an automatic exit changes what the state dot and the enabled set mean between placements |
+| B4 | A drag that starts inside an existing window still orbits the camera | SEL-03, WIN-02, `WindowDrawController`, `RoomBootstrap.OnDragDelta` | Windows already route drags for their own gesture; which mode owns a drag that begins over a window has to be stated per mode (Orbit vs WindowDraw) |
+| B5 | 2D view pulls the camera further back, and the switch between 2D and 3D is animated in both directions | TOP-01, `TopDownController`, `OrbitCameraController` | The framing is a fit-to-room today (TOP-01) - "further back" needs a number or a margin factor. The animation needs a duration and what happens to input while it runs |
+| B6 | The room is bigger and more rectangular | ROOM-01 assumptions, `RoomBootstrap.roomSize` | Serialized field, so the change itself is a number - but it moves the camera framing, the 2D fit and the window size limits that were tuned against 6 x 4 m |

@@ -11,7 +11,7 @@ in `.specs/STATE.md` supersedes it (see [Adopted / not adopted](#adopted--not-ad
 | Kit handoff | `Unity-handoff.md` in that folder — hierarchy, RectTransforms, borders, colours, TMP settings |
 | Requirements | HUD-01 (AC1-AC5), WIN-01 AC1 |
 | Tasks | T30 (button behaviour), T31 (row state seam), T32 (paint) — `docs/tasks/` |
-| Decisions | AD-019 (button disabled, not hidden), AD-020 (landscape), AD-022 (live readout/hint), AD-023 (UI colour space), AD-024 (Resources/HUD ships the -3x set) |
+| Decisions | AD-019 (button disabled, not hidden), AD-020 (landscape), AD-022 (live readout/hint), AD-023 (UI colour space), AD-024 (Resources/HUD ships the -3x set), AD-025 (the HUD is baked into the scene) |
 
 ---
 
@@ -31,10 +31,12 @@ The app ships **landscape** — phone held horizontally (AD-020). The kit is aut
 36 PNGs in `sprites/`, all **white** — every element is tinted through the Image `color` field, so one set
 covers every state. Each sprite ships at three densities (`-1x`, `-2x`, `-3x`); **iOS ships the -3x set**.
 
-The HUD does not read from this folder. The kit is built in code, so there is no inspector reference to carry a
-sprite, and the 13 sprites the HUD uses were copied into `Assets/Resources/HUD/` under their base names
-(`row_fill_9s.png`, `icon_ar.png`, ...) where `HudTheme.Sprite()` loads them by name (AD-024). The folder here
-stays untouched reference material — all three densities, exactly as the kit shipped them.
+The HUD does not read from this folder. The kit is described in code, so nothing holds an inspector reference at
+the moment a view is created, and the 13 sprites the HUD uses were copied into `Assets/Resources/HUD/` under their
+base names (`row_fill_9s.png`, `icon_ar.png`, ...) where `HudTheme.Sprite()` loads them by name (AD-024). The bake
+(AD-025) freezes those loads into ordinary serialized references in the scene, so `Resources` is what the bake and
+the fallback build read — a running frame reads the scene. The folder here stays untouched reference material —
+all three densities, exactly as the kit shipped them.
 
 All files: Texture Type **Sprite (2D and UI)**, Mesh Type **Full Rect**, Filter **Bilinear**, Compression
 **None**, sRGB **on**. Pixels Per Unit **100 / 200 / 300** for -1x / -2x / -3x, so a border that measures 8 px
@@ -108,14 +110,16 @@ on both.
 
 ## 5. Kit node → the script that builds it
 
-The HUD has no prefab: every view is constructed in code, so the kit is applied in these files.
+The HUD has no prefab. It is authored into `Assets/Scenes/Main.unity` by `Formify/Bake HUD Into Scene`
+(AD-025), and the files below are the description that bake runs — restyle the kit here, then re-bake, because
+the scene copy does not follow code.
 
 | Kit node | Built by |
 | --- | --- |
 | `HUD` canvas, `SurfacesPanel`, `Rows`, header, collapse control | `Assets/Scripts/UI/SurfaceListPanel.cs` |
 | `Row` / `RowSelected` (mark + SELECTED tag) | `Assets/Scripts/UI/SurfaceRow.cs` |
 | `ViewToggle` (`Seg2D` / `Seg3D`) | `Assets/Scripts/UI/ViewSwitchButtons.cs` |
-| `RightRail`, `BtnWindowMode` (+ state dot, glow) | `Assets/Scripts/UI/WindowModeButton.cs`, `Presentation/RoomBootstrap.cs` |
+| `RightRail`, `BtnWindowMode` (+ state dot, glow) | `Assets/Scripts/UI/WindowModeButton.cs`, `UI/HudRoot.cs` |
 | `BtnClear` | `Assets/Scripts/UI/ClearButton.cs` |
 | `BtnAR` | `Assets/Scripts/UI/ArToggleButton.cs` |
 | `WorldOverlay`, `WindowRect`, handles, `BtnDelete` | `Assets/Scripts/Presentation/WindowView.cs` |

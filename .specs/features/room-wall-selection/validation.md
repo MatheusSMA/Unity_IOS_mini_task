@@ -345,6 +345,8 @@ being written by the author of that change.
 | PlayMode | 92/92 | Unity `run_tests`, job `69908969`, 2026-08-18 (87 before Phase 6, 5 added) |
 | Console | 0 errors, 0 warnings | Unity `read_console` after a forced refresh + compile |
 
+**T33, later the same day:** the HUD moved out of play and into `Main.unity` (AD-025), and six EditMode cases were added in `HudSceneBakerTests`. The suites were not re-run - the owner asked for the test runner to be held - so the numbers above are the last measured ones. What was verified for T33: a forced Unity refresh + compile with a clean console, and the bake itself running against `Main.unity` (hierarchy read back through `manage_scene`).
+
 The suite could not run at all when the session opened: T31 removed `SurfaceRow.SelectedMarker` and left the
 discrimination test referring to it (`SurfaceListPanelTests.cs:200`, CS0117). Repaired first, in its own commit.
 
@@ -353,11 +355,11 @@ discrimination test referring to it (`SurfaceListPanelTests.cs:200`, CS0117). Re
 | AC | Where it is satisfied | Where it is asserted |
 | -- | --------------------- | -------------------- |
 | HUD-01 AC1 | `Assets/Resources/HUD/*.png.meta` — Sprite (2D and UI), Full Rect, Bilinear, Compression None (`overridden: 0` on every platform block, so the default governs), sRGB on, PPU 300, borders tripled from the handoff (`row_fill_9s.png.meta:52` = 18/18/18/18 for the kit's 6). AD-024 records why the HUD reads from `Resources` | Build gate (config layer, per the coverage matrix) |
-| HUD-01 AC2 | `HudTheme.cs` palette + `ReferenceResolution` 1183x670 match 0.5 (`SurfaceListPanel.cs:118-121`); rail, buttons, toggle, rows, readout, hint pill, scanlines built to the handoff's RectTransform table; `ProjectSettings.asset:62-65` allows landscape only | `HudArtKitTests.Readout_TracksTheSelection_AndTheWindowCount`, `HudArtKitTests.HintPill_FollowsTheMode`; appearance itself deferred to UAT |
+| HUD-01 AC2 | `HudTheme.cs` palette + `ReferenceResolution` 1183x670 match 0.5 (`SurfaceListPanel.cs:118-121`); rail, buttons, toggle, rows, readout, hint pill, scanlines built to the handoff, and since T33 baked into `Main.unity` as GameObjects (AD-025) from that same `HudRoot.Build`; `ProjectSettings.asset:62-65` allows landscape only | `HudArtKitTests.Readout_TracksTheSelection_AndTheWindowCount`, `HudArtKitTests.HintPill_FollowsTheMode`, `HudSceneBakerTests.Bake_puts_the_hud_canvas_in_the_scene`; appearance itself deferred to UAT |
 | HUD-01 AC3 | `SurfaceRow.IsSelected` (T31) | `SurfaceListPanelTests.SelectedState_LivesOnTheRow_NotInTheLabelText` |
 | HUD-01 AC4 | `HudTheme.AddImage` defaults `raycastTarget: false`; only `AddPanelBackground`'s fill, the rail fill, the header fill, button fills and the popup fill opt in | `HudArtKitTests.Decoration_OverTheWholeScreen_ConsumesNoTap`, paired with `Panels_DoConsumeTaps_SoNoTapFallsThroughIntoTheRoom` |
 | HUD-01 AC5 | Clear stays idempotent and single-step (`ClearButton.cs`); the kit's destructive palette is used only on window deletion (`WindowView.cs`). Extended to copy: the hint pill describes WIN-02's drag, not the mock-up's tap-to-place with resize handles | `ClearButtonTests` (unchanged), `HudArtKitTests.HintPill_FollowsTheMode` |
-| WIN-01 AC1 (state dot) | `WindowModeButton.StateDot` wired to `HudButton.Dot` in `RoomBootstrap.Compose` | `HudArtKitTests.RailWindowModeButton_EntersWindowMode_InASingleClick` |
+| WIN-01 AC1 (state dot) | `WindowModeButton.StateDot` serialized on the baked button and re-wired in `RoomBootstrap.Compose` | `HudArtKitTests.RailWindowModeButton_EntersWindowMode_InASingleClick`, `HudSceneBakerTests.Baked_hud_keeps_every_view_reference` |
 
 ### Discrimination sensor
 
