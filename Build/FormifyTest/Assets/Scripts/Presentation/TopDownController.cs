@@ -37,6 +37,12 @@ namespace Formify.Presentation
         /// </summary>
         [SerializeField] private float planZoomOut = 1.25f;
 
+        /// <summary>
+        /// The half-height the plan opens at, in metres, set by eye by the owner. It wins over the fit
+        /// pull-back whenever it is the larger of the two, so a room too big for 5.2 still gets framed.
+        /// </summary>
+        [SerializeField] private float planSize = 5.2f;
+
         /// <summary>B5 — seconds the camera takes to fly between the 3D pose and the plan pose, both ways.
         /// 0 restores the plain snap.</summary>
         [SerializeField] private float transitionSeconds = 0.35f;
@@ -99,14 +105,17 @@ namespace Formify.Presentation
             }
         }
 
-        /// <summary>B5 — the size the plan actually opens at: the fit pushed back by <c>planZoomOut</c>, kept
-        /// honest against the pinch clamps so entry can never start outside [minZoom, maxZoom] (AD-016).</summary>
+        /// <summary>
+        /// B5 — the size the plan actually opens at: the owner's <c>planSize</c>, or the fit pushed back by
+        /// <c>planZoomOut</c> when that is larger, so a room bigger than 5.2 is still framed whole. Kept honest
+        /// against the pinch clamps either way, so entry can never start outside [minZoom, maxZoom] (AD-016).
+        /// </summary>
         public float PlanOrthographicSize
         {
             get
             {
                 float fit = FitOrthographicSize;
-                return Mathf.Clamp(fit * planZoomOut, minZoom * fit, maxZoom * fit);
+                return Mathf.Clamp(Mathf.Max(planSize, fit * planZoomOut), minZoom * fit, maxZoom * fit);
             }
         }
 

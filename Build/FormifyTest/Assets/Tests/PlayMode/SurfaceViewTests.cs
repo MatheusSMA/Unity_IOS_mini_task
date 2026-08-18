@@ -97,15 +97,18 @@ namespace Formify.Tests.PlayMode
         /// Lit and drops _BaseColor's alpha — a raw SelectedRowFill would repaint the wall solid green.
         /// </summary>
         [Test]
-        public void TintColour_IsTheKitSelectedGreen_OverTheSurfacesOwnColour()
+        public void TintColour_IsTheKitAccent_DarkenedIntoADeepGreen()
         {
-            Color expected = Color.Lerp(_view.BaseColor, HudTheme.Accent, HudTheme.SelectedRowFill.a);
-
-            AssertColour(expected, _view.TintColor, "kit tint");
-
-            // The saturation is the whole "tinted, not painted" claim: the raw accent spreads its channels
-            // wide (0.73), the composited tint barely at all (0.10).
             Color tint = _view.TintColor;
+
+            // Green-dominant AND darker than the surface itself. Either half alone would pass for something the
+            // owner asked against: a pale mint wash, or a grey wall.
+            Assert.Greater(tint.g, tint.r, "the tint has to be green-dominant");
+            Assert.Greater(tint.g, tint.b, "the tint has to be green-dominant");
+            Assert.Less(tint.grayscale, _view.BaseColor.grayscale,
+                "a selected wall reads darker than an unselected one, not paler");
+
+            // Still a tint, not a paint: the raw accent spreads its channels 0.73 wide.
             float spread = tint.maxColorComponent - Mathf.Min(tint.r, Mathf.Min(tint.g, tint.b));
             Assert.Less(spread, 0.5f,
                 "the wall must read tinted, not painted - a full-strength accent would be a solid green slab");

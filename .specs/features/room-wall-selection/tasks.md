@@ -1119,6 +1119,8 @@ AD-029 with it.
    only: TOP-02 AC8 picks a wall out of a tap that lands on the floor within tolerance, so the collider stays -
    the same trap AD-012 recorded for the ceiling, in reverse.
 
+**Follow-up, same day**: the owner set the plan camera by eye at 5.2 m of orthographic half-height (it wins over the 1.25x pull-back unless the room is too big for it), and asked for the selected wall's green to be darker - the tint is now the accent at 0.55 strength, shaded to 0.62, so a selected surface reads as a deep green instead of a pale wash.
+
 **Where**: `Assets/Scripts/Presentation/SurfaceView.cs`, `TopDownController.cs`, `WindowDrawController.cs`,
 `RoomBootstrap.cs`, `Assets/Scripts/UI/HudReadout.cs`, `Assets/Scripts/Domain/WindowPlacementValidator.cs`,
 `Assets/Settings/SelectionOutline.mat`, and the PlayMode fixtures for surfaces, outline, top-down and window

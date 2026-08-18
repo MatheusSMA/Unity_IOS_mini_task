@@ -15,13 +15,22 @@ namespace Formify.Presentation
         private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
         private static readonly int OutlineColorProperty = Shader.PropertyToID("_OutlineColor");
 
+        /// <summary>How far the surface travels towards the kit accent, and how far the result is then shaded.</summary>
+        private const float TintStrength = 0.55f;
+        private const float TintShade = 0.62f;
+
         /// <summary>
-        /// SEL-02 in the kit palette (HUD-01): Accent at SelectedRowFill's alpha, laid over the surface's own
-        /// colour. Composited HERE because the surface material is opaque URP Lit and throws _BaseColor's alpha
-        /// away — pushing SelectedRowFill straight in would repaint the wall solid green instead of tinting it.
+        /// SEL-02 in the kit palette (HUD-01): the surface pulled towards Accent and then darkened, so a
+        /// selected wall reads as a deep green rather than a pale one - the owner asked for the darker green.
+        /// Composited HERE because the surface material is opaque URP Lit and throws _BaseColor's alpha away:
+        /// pushing the kit's low-alpha SelectedRowFill straight in would repaint the wall solid neon instead.
         /// </summary>
-        private static readonly Color KitTint =
-            Color.Lerp(Color.white, HudTheme.Accent, HudTheme.SelectedRowFill.a);
+        private static readonly Color KitTint = Shade(Color.Lerp(Color.white, HudTheme.Accent, TintStrength));
+
+        private static Color Shade(Color color)
+        {
+            return new Color(color.r * TintShade, color.g * TintShade, color.b * TintShade, color.a);
+        }
 
         private const int LayerUnresolved = -2;
 
