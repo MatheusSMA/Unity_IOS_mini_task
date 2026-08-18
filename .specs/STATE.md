@@ -76,9 +76,13 @@ may be up to 6 m per axis, the readout reports the rectangle under the finger wh
 plan view hides the floor's renderer while keeping its collider. `README_NEW.md` at the repo root is the
 human-readable tour written to replace `README.md`; `docs/tecnico.md` stays the technical one.
 
-**Next step:** every gate from T33 on is unrun - the owner asked for the test runner to be held, and the suites
-have gained roughly 40 cases since. Running them is the first thing to do, and the three sensors most worth
-reading before that are named at the end of `validation.md` section 10. Human UAT is still open: the three checks in `validation.md`
+**Gate, 2026-08-18 after T38: EditMode 83/83, PlayMode 128/128, console clean.** The hold on the runner was
+lifted and everything from T33 on ran at once. It caught three defects, all in test infrastructure rather than
+feature code - the baker fixture could not create its scene under the EditMode runner, a second `InputRouter`
+added a second simulated touchscreen, and two expectations had gone stale under the 5.2 plan opening and AD-027.
+All three are fixed and recorded in `validation.md` section 10.
+
+**Next step:** human UAT. The three checks in `validation.md`
 section 7 (outline appearance, AR pose under XR Simulation, the iOS build-target switch) and now the kit's
 appearance on a real landscape device - every screenshot so far was taken at the Editor's Game view aspect
 (1557x1222), which is not the shape the HUD is designed for. `.specs/features/hud-art-kit/context.md` lists the

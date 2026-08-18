@@ -984,7 +984,7 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 - [x] Every view reference survives serialization, including the ones a delegate used to carry - the header's collapse click and the window mode button's `onClick` are re-wired on bind
 - [x] The bake leaves no scaffold, camera or bootstrap behind, and reaches into no scene but the active one
 - [x] `HudScenePreview` (the self-deleting preview) is gone, and the menu reads `Formify/Bake HUD Into Scene` / `Formify/Remove HUD From Scene`
-- [ ] Gate: EditMode + PlayMode suites - **not run; the owner asked for the test runner to be held**
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Tests**: EditMode
 **Gate**: build (compile verified through Unity MCP: forced refresh + compile, console clean, and the bake itself ran)
@@ -1016,7 +1016,7 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 - [x] Tapping a window row selects the window, clears the surface selection and marks the window row - and the reverse holds
 - [x] The panel's tap gate (AD-015) covers window rows, so nothing selects while a window is being drawn
 - [x] The readout reports the selected window instead of falling back to the empty state
-- [ ] Gate: EditMode + PlayMode suites - **not run; the owner asked for the test runner to be held**
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Tests**: EditMode (`RoomModelWindowSelectionTests`, 9 cases), PlayMode (`SurfaceListWindowRowsTests`, 10 cases)
 **Gate**: build (compile verified through Unity MCP with a clean console; the bake re-ran and the wall rows carry their hidden disclosure control)
@@ -1045,7 +1045,7 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 - [x] The mode change stays instant - ceiling, selection cancel and toggle highlight fire on `ModeChanged` as before
 - [x] The flight lands exactly on the old snap pose, and a mid-flight switch retargets rather than snapping
 - [x] Pinch and orbit drags do nothing while it flies
-- [ ] Gate: suites not run - the owner asked for the runner to be held
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Tests**: PlayMode - 8 new cases (`B5_*` in `TopDownControllerTests`, `InputLocked_*` in `OrbitCameraControllerTests`); 3 existing cases now step frames to the landing instead of asserting on the next frame.
 
@@ -1066,7 +1066,7 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 - [x] `roomSize` is 9 x 5 in the code default and in the scene
 - [x] The two fixtures that assert the app's own room moved with it - Wall 3 changed plane, so the drag-routing fixture's world points and expected wall-local rect moved
 - [x] Nothing camera-side needed changing: the orbit rig clamps off `RoomBounds`, the plan fits off the same extents, and window size limits are wall-local
-- [ ] Gate: suites not run - the owner asked for the runner to be held
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Commit**: `[feat] widen the room to 9 x 5 metres`
 
@@ -1089,7 +1089,7 @@ carry live data), AD-023 (`vertexColorAlwaysGammaSpace` on the HUD canvas) and A
 - [x] The delete X and the accent border follow the selection, from the room or from the list, and leave when it moves
 - [x] A drag starting over a window in window mode turns the camera and cuts nothing
 - [x] Black sky, grey floor, no collider under the room
-- [ ] Gate: suites not run - the owner asked for the runner to be held
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Tests**: PlayMode - `InWindowDraw_ADragStartingOverAWindowTurnsTheCameraInstead`, `Tapping_a_window_selects_it_and_clears_the_surface_selection`, `Tapping_a_wall_after_a_window_clears_the_window_selection`, `OnTapped_SelectsTheWindowAndTheDeleteAffordanceFollows`, `MovingTheSelectionElsewhere_TakesTheDeleteAffordanceWithIt`, `SelectedWindow_IsOutlinedOverTheOpeningInTheAccent`, plus one renamed routing-precedence case.
 
@@ -1135,7 +1135,7 @@ drawing, plus the EditMode validator fixture
 - [x] A 6 x 2 m opening is legal on a long wall; anything past 6 m per axis is still refused
 - [x] The readout shows the live rectangle while drawing and returns to the selection the moment the drag ends
 - [x] The plan view hides the floor's renderer and keeps its collider
-- [ ] Gate: suites not run - the owner asked for the test runner to be held
+- [x] Gate: EditMode 83/83, PlayMode 128/128 (2026-08-18, run after T38)
 
 **Tests**: PlayMode - `TintColour_IsTheKitSelectedGreen_OverTheSurfacesOwnColour`,
 `The_outline_colour_comes_from_the_kit_accent`, `Entering2D_HidesTheFloorRenderer_ButKeepsItsCollider`,

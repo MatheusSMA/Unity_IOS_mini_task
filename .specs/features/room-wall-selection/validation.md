@@ -355,8 +355,8 @@ being written by the author of that change.
 
 | Suite | Result | Evidence |
 | ----- | ------ | -------- |
-| EditMode | 67/67 | Unity `run_tests`, job `252ace88`, 2026-08-18 |
-| PlayMode | 92/92 | Unity `run_tests`, job `69908969`, 2026-08-18 (87 before Phase 6, 5 added) |
+| EditMode | 83/83 | Unity `run_tests`, job `ff57ea9a`, 2026-08-18 (67 at the Phase 6 gate, 16 added since) |
+| PlayMode | 128/128 | Unity `run_tests`, job `35b7d98e`, 2026-08-18 (92 at the Phase 6 gate, 36 added since) |
 | Console | 0 errors, 0 warnings | Unity `read_console` after a forced refresh + compile |
 
 **T33, later the same day:** the HUD moved out of play and into `Main.unity` (AD-025), and six EditMode cases were added in `HudSceneBakerTests`. The suites were not re-run - the owner asked for the test runner to be held - so the numbers above are the last measured ones. What was verified for T33: a forced Unity refresh + compile with a clean console, and the bake itself running against `Main.unity` (hierarchy read back through `manage_scene`).
@@ -416,11 +416,10 @@ failed and exposed defect 2 below, which is also proof the raycast is not inert.
 
 ## 10 · Phase 8 verification (LIST-03, TOP-01, SEL-03, ROOM-01 — 2026-08-18)
 
-**The suites were not run.** The owner asked for the test runner to be held for the whole of Phase 8, so this
-section records what asserts each new rule, not a pass. Everything below is written and compiles; nothing below
-has been executed. What *was* verified: a forced Unity refresh + compile with a clean console after every task
-(T34, T35, T36, T37), the editor bake re-run against `Main.unity`, and the scene's `roomSize` read back through
-Unity after the change.
+**The suites ran after T38 and are green: EditMode 83/83, PlayMode 128/128.** They were held for the whole of
+Phase 8 at the owner s request, so this section was written as "what asserts each rule" and is now backed by a
+pass. The hold cost three real defects that the first run caught at once - they are recorded below, because a
+suite held for eight tasks and then run is exactly where the argument for running it every task lives.
 
 | Rule | Where it is satisfied | Where it is asserted |
 | ---- | --------------------- | -------------------- |
@@ -464,3 +463,26 @@ Unity after the change.
 **Watch:** `Settings/SelectionOutline.mat` carries the accent as its asset default *and* the property block sets
 it. The two were made to agree rather than proven to agree - proving it needs play mode. An orange ring in UAT
 means the property block is not overriding the override material, and that file is the fix.
+
+### What the first run after the hold caught (2026-08-18)
+
+Three failures, three different kinds, none of them in the feature code the tasks were about:
+
+1. **Every `HudSceneBakerTests` case failed at SetUp** — `EditorSceneManager.NewScene(..., Additive)` throws
+   *"Cannot create a new scene additively with an untitled scene unsaved"*, and the EditMode runner opens an
+   untitled scene for the run. The fixture had never been executed, so its isolation strategy had never been
+   tested against the runner it runs in. It now uses the runner's own scene as the sandbox and cleans up after
+   itself. A second, smaller version of the same mistake: the fixture asserted no `Camera` survives the bake,
+   but the runner's scene ships one — the real rule is that nothing the scaffold named with a leading `~` may
+   survive.
+2. **`[Assert] Already added touchscreen` failed three `RoomBootstrapTests` cases** — `TouchSimulation` is a
+   global singleton, and `InputRouter` guarded it with a per-instance flag, so a second router enabled it twice.
+   Fixed at the root (ask the singleton, and only disable what this router enabled). The assert also leaks in
+   from the two `InputTestFixture` fixtures restoring the input system, which is nothing to do with a fixture
+   that builds a room and reads it back, so that one ignores failing log messages and says why.
+3. **Two stale expectations** — the plan opening moved from `fit x 1.25` to the owner's 5.2, and AD-027 now drops
+   window mode after a placement, so the overlap test's second drag could not start. Both were the tests
+   correctly reporting that behaviour had changed underneath them.
+
+The first two are the interesting ones: both are test-infrastructure defects that no amount of compiling would
+have found, and both were introduced in tasks whose feature code was correct.

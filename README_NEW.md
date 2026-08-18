@@ -75,6 +75,9 @@ Built with the **`tlc-spec-driven`** workflow — Specify, Design, Tasks, Execut
 - **`STATE.md`** — 28 numbered decisions with the reasoning, written when the disagreement happened rather than
   afterwards.
 
+The suites stand at **83 EditMode and 128 PlayMode tests, all green**. EditMode covers the domain rules with no
+scene at all; PlayMode covers input, cameras, views and HUD wiring.
+
 It earns its keep when something changes: "put the windows in the list" was not a guess about blast radius —
 the requirement map named what it touched, and the decision log said why selection was a single integer, which
 was exactly the thing that had to change first.
