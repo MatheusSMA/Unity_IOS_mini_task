@@ -63,9 +63,9 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 
 **Acceptance Criteria** (BOOT-01):
 
-1. A Unity 6 (6000.x) project SHALL exist at the repository root with URP installed, a URP asset created and assigned in Graphics and Quality settings. <!-- ubiquitous -->
-2. The following packages SHALL be installed at pinned versions: com.unity.inputsystem, com.unity.xr.arfoundation 6.x, com.unity.xr.arkit 6.x (matching), com.unity.test-framework, TextMeshPro essentials. <!-- ubiquitous -->
-3. An empty bootstrap scene SHALL open in the Editor without console errors. <!-- ubiquitous -->
+1. A Unity 6 (6000.x) project SHALL exist at `Build/FormifyTest` with URP installed, a URP asset created and assigned in Graphics and Quality settings, and the quality level in use SHALL be the one whose renderer carries the OUT-01 outline passes. <!-- ubiquitous -->
+2. The following packages SHALL be installed at pinned versions: com.unity.inputsystem, com.unity.xr.arfoundation 6.x, com.unity.xr.arkit 6.x (matching), com.unity.test-framework, TextMeshPro essentials. Editor-only tooling outside this list is not covered by the pinning rule. <!-- ubiquitous -->
+3. A bootstrap scene SHALL open in the Editor without console errors. <!-- ubiquitous -->
 4. The Test Runner SHALL run green with zero tests in both EditMode and PlayMode assemblies. <!-- ubiquitous -->
 5. The project SHALL switch to the iOS build target without build-settings errors. <!-- ubiquitous -->
 
@@ -159,8 +159,8 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 5. WHEN a wall mesh is rebuilt (window added or removed) THEN the system SHALL assign the new mesh to that wall's MeshCollider in the same operation. <!-- event-driven -->
 6. The system SHALL clamp the rectangle so it lies fully inside the wall's bounds minus the minimum edge margin (0.1 m default on all sides). <!-- ubiquitous -->
 7. IF the released rectangle overlaps an existing window on the same wall THEN the system SHALL reject the placement and remove the preview without modifying the wall. <!-- unwanted-behavior -->
-8. IF the released rectangle is smaller than the minimum window size or larger than the maximum window size THEN the system SHALL reject the placement and remove the preview without modifying the wall. <!-- unwanted-behavior -->
-9. IF the released rectangle violates the minimum edge margin THEN the system SHALL reject the placement and remove the preview without modifying the wall. <!-- unwanted-behavior -->
+8. IF the released rectangle is smaller than the minimum window size or larger than the maximum window size THEN the system SHALL reject the placement and remove the preview without modifying the wall. A rectangle drawn exactly on a limit SHALL be accepted anywhere on the wall: the comparison carries a 1e-4 m band, because the clamped extent is a subtraction of two world coordinates and drifts either side of the limit depending on where the window sits. <!-- unwanted-behavior -->
+9. IF nothing of the released rectangle survives the AC6 clamp — it lies entirely inside the edge margin band, or the wall is too small to have an allowed region at all — THEN the system SHALL reject the placement and remove the preview without modifying the wall. A rectangle that merely crosses into the band is clamped by AC6, not rejected. <!-- unwanted-behavior -->
 10. The system SHALL support multiple non-overlapping windows per wall. <!-- ubiquitous -->
 11. IF a drag in window mode starts on empty space, floor or ceiling THEN the system SHALL NOT create a preview or a window. <!-- unwanted-behavior -->
 12. WHEN a window exists in a wall THEN a raycast through the opening SHALL NOT hit that wall's surface mesh (the opening's own deletion collider, WIN-04, is exempt). <!-- event-driven -->

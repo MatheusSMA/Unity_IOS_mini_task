@@ -13,7 +13,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/room-wall-selection/design.md`
-**Status**: Draft
+**Status**: Complete — all 29 tasks implemented and committed; see `validation.md` for the independent verification result
 
 ---
 
