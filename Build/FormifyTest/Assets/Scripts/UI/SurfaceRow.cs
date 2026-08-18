@@ -10,18 +10,23 @@ namespace Formify.Presentation
     /// out of the label text, so the art kit's green tag and left mark can replace the old "[SELECTED]" suffix
     /// without a single test having to know how the row is painted. <see cref="SurfaceListPanel"/> owns the rows
     /// and is the only caller of <see cref="SetSelected"/>.
+    /// The same row draws a window (LIST-03): indented, without an index column, and a wall that carries windows
+    /// gets the disclosure dot that collapses them — same shape, two depths.
     /// </summary>
     [DisallowMultipleComponent]
     public class SurfaceRow : MonoBehaviour
     {
         private const float MarkWidth = 2f;
         private const float TagWidth = 62f;
+        private const float DiscloseHit = 24f;
+        private const float DiscloseDot = 6f;
 
         private TextMeshProUGUI _label;
         private Button _button;
         private Image _fill;
         private Image _mark;
         private RectTransform _tag;
+        private Image _discloseDot;
 
         /// <summary>The row's own state — the source of truth for "this surface is the selected one".</summary>
         public bool IsSelected { get; private set; }
@@ -34,9 +39,16 @@ namespace Formify.Presentation
         /// <summary>The row's own button, or null when it was built without a click handler.</summary>
         public Button Button => _button;
 
-        /// <summary>The kit's row: fill, 2 px selection mark, index, name and the green SELECTED tag.</summary>
+        /// <summary>The disclosure control, or null on a row that has nothing to collapse.</summary>
+        public Button DiscloseButton { get; private set; }
+
+        /// <summary>
+        /// The kit's row: fill, 2 px selection mark, index, name and the green SELECTED tag.
+        /// <paramref name="index"/> below 1 leaves the index column out (a window row is identified by its
+        /// indent and its label, not by a number). <paramref name="onDisclose"/> adds the collapse control.
+        /// </summary>
         public static SurfaceRow Create(Transform parent, string objectName, int index, string surfaceName,
-            float height, UnityAction onClick = null)
+            float height, UnityAction onClick = null, float indent = 0f, UnityAction onDisclose = null)
         {
             RectTransform root = HudTheme.NewUi(objectName, parent);
 
@@ -63,36 +75,45 @@ namespace Formify.Presentation
             markRect.anchorMin = new Vector2(0f, 0f);
             markRect.anchorMax = new Vector2(0f, 1f);
             markRect.pivot = new Vector2(0f, 0.5f);
-            markRect.offsetMin = Vector2.zero;
-            markRect.offsetMax = Vector2.zero;
+            markRect.offsetMin = new Vector2(indent, 0f);
+            markRect.offsetMax = new Vector2(indent, 0f);
             markRect.sizeDelta = new Vector2(MarkWidth, 0f);
             row._mark = markRect.gameObject.AddComponent<Image>();
             row._mark.color = HudTheme.Accent;
             row._mark.raycastTarget = false;
             row._mark.enabled = false;
 
-            RectTransform indexRect = HudTheme.NewUi("Index", root);
-            indexRect.anchorMin = new Vector2(0f, 0f);
-            indexRect.anchorMax = new Vector2(0f, 1f);
-            indexRect.pivot = new Vector2(0f, 0.5f);
-            indexRect.offsetMin = new Vector2(10f, 0f);
-            indexRect.offsetMax = new Vector2(24f, 0f);
-            var indexLabel = indexRect.gameObject.AddComponent<TextMeshProUGUI>();
-            indexLabel.text = (index + 1).ToString("00");
-            indexLabel.fontSize = 11f;
-            indexLabel.characterSpacing = HudTheme.Tracking(40f);
-            indexLabel.color = HudTheme.Caption;
-            indexLabel.alignment = TextAlignmentOptions.MidlineLeft;
-            indexLabel.raycastTarget = false;
+            float labelLeft = indent + 12f;
+
+            if (index >= 1)
+            {
+                RectTransform indexRect = HudTheme.NewUi("Index", root);
+                indexRect.anchorMin = new Vector2(0f, 0f);
+                indexRect.anchorMax = new Vector2(0f, 1f);
+                indexRect.pivot = new Vector2(0f, 0.5f);
+                indexRect.offsetMin = new Vector2(indent + 10f, 0f);
+                indexRect.offsetMax = new Vector2(indent + 24f, 0f);
+                var indexLabel = indexRect.gameObject.AddComponent<TextMeshProUGUI>();
+                indexLabel.text = index.ToString("00");
+                indexLabel.fontSize = 11f;
+                indexLabel.characterSpacing = HudTheme.Tracking(40f);
+                indexLabel.color = HudTheme.Caption;
+                indexLabel.alignment = TextAlignmentOptions.MidlineLeft;
+                indexLabel.raycastTarget = false;
+
+                labelLeft = indent + 30f;
+            }
+
+            float tagInset = onDisclose != null ? 8f + DiscloseHit : 8f;
 
             RectTransform labelRect = HudTheme.NewUi("Label", root);
             labelRect.anchorMin = new Vector2(0f, 0f);
             labelRect.anchorMax = new Vector2(1f, 1f);
-            labelRect.offsetMin = new Vector2(30f, 0f);
-            labelRect.offsetMax = new Vector2(-(TagWidth + 10f), 0f);
+            labelRect.offsetMin = new Vector2(labelLeft, 0f);
+            labelRect.offsetMax = new Vector2(-(TagWidth + tagInset + 2f), 0f);
             row._label = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
             row._label.text = surfaceName;
-            row._label.fontSize = 13f;
+            row._label.fontSize = index >= 1 ? 13f : 12f;
             row._label.characterSpacing = HudTheme.Tracking(40f);
             row._label.color = HudTheme.RowLabel;
             row._label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -103,13 +124,15 @@ namespace Formify.Presentation
             row._tag.anchorMax = new Vector2(1f, 0.5f);
             row._tag.pivot = new Vector2(1f, 0.5f);
             row._tag.sizeDelta = new Vector2(TagWidth, 16f);
-            row._tag.anchoredPosition = new Vector2(-8f, 0f);
+            row._tag.anchoredPosition = new Vector2(-tagInset, 0f);
             // row_fill_9s, not the hint pill's sprite: pill_fill_9s carries a 24 px corner, which on a 16 px tall
             // tag leaves no straight edge at all and the SELECTED tag renders as an ellipse.
             HudTheme.AddImage(row._tag, "TagFill", "row_fill_9s", HudTheme.Accent);
             HudTheme.AddLabel(row._tag, "TagLabel", "SELECTED", 9f, 120f, HudTheme.TagText,
                 TextAlignmentOptions.Center);
             row._tag.gameObject.SetActive(false);
+
+            if (onDisclose != null) BuildDisclosure(row, root, onDisclose);
 
             return row;
         }
@@ -118,6 +141,59 @@ namespace Formify.Presentation
         {
             IsSelected = selected;
             Repaint();
+        }
+
+        /// <summary>Window rows are numbered per wall, so the text changes when a sibling is deleted.</summary>
+        public void SetLabel(string text)
+        {
+            if (_label != null) _label.text = text;
+        }
+
+        /// <summary>
+        /// The disclosure control is built once and hidden while the wall carries no windows: building it later
+        /// would reflow the row the moment the first window lands, and the label would jump.
+        /// </summary>
+        public void SetDiscloseVisible(bool visible)
+        {
+            if (DiscloseButton != null) DiscloseButton.gameObject.SetActive(visible);
+        }
+
+        /// <summary>Paints the disclosure control. Lit means the children are showing, like the panel header.</summary>
+        public void SetExpanded(bool expanded)
+        {
+            if (_discloseDot != null) _discloseDot.color = expanded ? HudTheme.Accent : HudTheme.IdleLabel;
+        }
+
+        /// <summary>
+        /// The kit has no chevron, and the panel header already says "collapsed" with a dimmed dot — so the row
+        /// borrows that vocabulary instead of inventing art. The 6 px dot sits inside a 24 px hit area, because
+        /// 6 px is not a touch target; the invisible fill IS the button, so it has to stay a raycast target.
+        /// </summary>
+        private static void BuildDisclosure(SurfaceRow row, RectTransform root, UnityAction onDisclose)
+        {
+            RectTransform hit = HudTheme.NewUi("Disclose", root);
+            hit.anchorMin = new Vector2(1f, 0.5f);
+            hit.anchorMax = new Vector2(1f, 0.5f);
+            hit.pivot = new Vector2(1f, 0.5f);
+            hit.sizeDelta = new Vector2(DiscloseHit, DiscloseHit);
+            hit.anchoredPosition = new Vector2(-4f, 0f);
+
+            var area = hit.gameObject.AddComponent<Image>();
+            area.color = Color.clear;
+            area.raycastTarget = true;
+
+            row.DiscloseButton = hit.gameObject.AddComponent<Button>();
+            row.DiscloseButton.targetGraphic = area;
+            row.DiscloseButton.transition = Selectable.Transition.None;
+            row.DiscloseButton.onClick.AddListener(onDisclose);
+
+            RectTransform dot = HudTheme.NewUi("Dot", hit);
+            dot.anchorMin = new Vector2(0.5f, 0.5f);
+            dot.anchorMax = new Vector2(0.5f, 0.5f);
+            dot.sizeDelta = new Vector2(DiscloseDot, DiscloseDot);
+            row._discloseDot = dot.gameObject.AddComponent<Image>();
+            row._discloseDot.color = HudTheme.Accent;
+            row._discloseDot.raycastTarget = false;
         }
 
         private void Repaint()

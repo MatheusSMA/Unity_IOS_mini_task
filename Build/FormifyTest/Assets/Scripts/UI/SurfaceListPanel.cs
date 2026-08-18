@@ -12,17 +12,23 @@ namespace Formify.Presentation
     /// live-bound to <see cref="RoomModel.SelectionChanged"/> — exactly the two affected rows are rewritten per
     /// event (AD-007). Collapsing hides the row container, never the binding (EDGE-06); the header doubles as
     /// the collapse control and stays visible either way (LIST AC4).
-    /// Owns the application Canvas built entirely in code — later UI tasks attach to <see cref="Canvas"/> — and
-    /// paints itself with the art kit (HUD-01) through <see cref="HudTheme"/>. The canvas is landscape: the
-    /// scaler matches the kit's reference resolution (AD-020).
+    /// A window is a row too (LIST-03): indented under the wall it was cut into, live on
+    /// <see cref="RoomModel.WindowAdded"/> / <see cref="RoomModel.WindowRemoved"/>, selectable like any row, and
+    /// collapsible per wall through the disclosure dot the wall row carries.
+    /// Owns the application Canvas — the HUD is baked from it into the scene (AD-025) and later UI attaches to
+    /// <see cref="Canvas"/> — and paints itself with the art kit (HUD-01) through <see cref="HudTheme"/>. The
+    /// canvas is landscape: the scaler matches the kit's reference resolution (AD-020).
     /// </summary>
     public class SurfaceListPanel : MonoBehaviour
     {
         private const string RowNamePrefix = "Row_";
+        private const string WindowRowNamePrefix = "WindowRow_";
 
         [SerializeField] private float panelWidth = 250f;
         [SerializeField] private float panelHeight = 312f;
         [SerializeField] private float rowHeight = 40f;
+        [SerializeField] private float windowRowHeight = 32f;
+        [SerializeField] private float windowRowIndent = 18f;
         [SerializeField] private float headerHeight = 38f;
         [SerializeField] private float panelMargin = 8f;
 
@@ -36,6 +42,8 @@ namespace Formify.Presentation
         [SerializeField] private TMPro.TextMeshProUGUI headerCount;
 
         private readonly Dictionary<int, SurfaceRow> _rows = new Dictionary<int, SurfaceRow>();
+        private readonly Dictionary<int, SurfaceRow> _windowRows = new Dictionary<int, SurfaceRow>();
+        private readonly HashSet<int> _collapsedWalls = new HashSet<int>();
 
         private RoomModel _model;
         private Func<bool> _canSelect;
@@ -67,15 +75,16 @@ namespace Formify.Presentation
         }
 
         /// <summary>
-        /// Builds one row per surface and binds to the model. Safe to call again with another model.
-        /// <paramref name="canSelect"/> gates row taps: the caller owns the mode rules, so the panel does not
-        /// have to know about <see cref="ModeManager"/> to honour AD-015. Left null, every row tap selects.
+        /// Builds one row per surface, one indented row per window, and binds to the model. Safe to call again
+        /// with another model. <paramref name="canSelect"/> gates row taps: the caller owns the mode rules, so
+        /// the panel does not have to know about <see cref="ModeManager"/> to honour AD-015. Left null, every
+        /// row tap selects.
         /// </summary>
         public void Configure(RoomModel model, Func<bool> canSelect = null)
         {
             EnsureCanvas();
 
-            if (_model != null) _model.SelectionChanged -= OnSelectionChanged;
+            Unsubscribe();
 
             // Group dividers are children too and belong to the old model, so the container is cleared wholesale.
             // Destroy only lands at the end of the frame, so the old children are unparented first: left in the
@@ -89,6 +98,8 @@ namespace Formify.Presentation
             }
 
             _rows.Clear();
+            _windowRows.Clear();
+            _collapsedWalls.Clear();
 
             _model = model;
             _canSelect = canSelect;
@@ -109,12 +120,27 @@ namespace Formify.Presentation
                 }
 
                 int surfaceId = surface.id;   // captured per row, not per loop variable
-                _rows[surfaceId] = SurfaceRow.Create(rowContainer.transform, RowNamePrefix + surface.name, i,
-                    surface.name, rowHeight, () => SelectRow(surfaceId));
+                bool isWall = surface.kind == SurfaceKind.Wall;
+
+                _rows[surfaceId] = SurfaceRow.Create(rowContainer.transform, RowNamePrefix + surface.name, i + 1,
+                    surface.name, rowHeight, () => SelectRow(surfaceId), 0f,
+                    isWall ? (UnityEngine.Events.UnityAction)(() => ToggleWall(surfaceId)) : null);
+
+                if (!isWall) continue;
+
+                // Re-configuring an already-populated model has to redraw its windows too.
+                IReadOnlyList<WindowSpec> windows = _model.GetWindows(surfaceId);
+                for (int w = 0; w < windows.Count; w++) AddWindowRow(windows[w]);
+                RefreshWallDisclosure(surfaceId);
             }
 
             _model.SelectionChanged += OnSelectionChanged;
+            _model.WindowSelectionChanged += OnWindowSelectionChanged;
+            _model.WindowAdded += OnWindowAdded;
+            _model.WindowRemoved += OnWindowRemoved;
+
             SetRow(_model.SelectedSurfaceId, true);
+            SetWindowRow(_model.SelectedWindowId, true);
         }
 
         /// <summary>Hides/shows the rows. The collapse control stays active either way (LIST AC4).</summary>
@@ -128,6 +154,20 @@ namespace Formify.Presentation
         }
 
         /// <summary>
+        /// LIST-03: folds a wall's windows away without touching the wall row or any binding — the same rule
+        /// EDGE-06 sets for the panel-wide collapse, one level down.
+        /// </summary>
+        public void ToggleWall(int surfaceId)
+        {
+            if (!_collapsedWalls.Remove(surfaceId)) _collapsedWalls.Add(surfaceId);
+
+            ApplyWallCollapse(surfaceId);
+        }
+
+        /// <summary>Whether that wall is showing its windows. A wall with no windows is expanded and bare.</summary>
+        public bool IsWallExpanded(int surfaceId) => !_collapsedWalls.Contains(surfaceId);
+
+        /// <summary>
         /// LIST-01: the kit draws the rows as list items, so tapping one selects that surface. The panel is opaque
         /// HUD and stops the tap (EDGE-02), so without this a finger on the list reaches nothing at all.
         /// </summary>
@@ -137,6 +177,15 @@ namespace Formify.Presentation
             if (_canSelect != null && !_canSelect()) return;
 
             _model.Select(surfaceId);
+        }
+
+        /// <summary>Same rule for a window row, and the model makes the two selections mutually exclusive.</summary>
+        private void SelectWindowRow(int windowId)
+        {
+            if (_model == null) return;
+            if (_canSelect != null && !_canSelect()) return;
+
+            _model.SelectWindow(windowId);
         }
 
         /// <summary>Row state as the row itself holds it — no label parsing (HUD-01 AC3).</summary>
@@ -151,6 +200,23 @@ namespace Formify.Presentation
             return _rows.TryGetValue(surfaceId, out SurfaceRow row) && row != null ? row.Text : null;
         }
 
+        public bool IsWindowRowSelected(int windowId)
+        {
+            return _windowRows.TryGetValue(windowId, out SurfaceRow row) && row != null && row.IsSelected;
+        }
+
+        public string GetWindowRowLabel(int windowId)
+        {
+            return _windowRows.TryGetValue(windowId, out SurfaceRow row) && row != null ? row.Text : null;
+        }
+
+        /// <summary>Whether that window's row is on screen — false while its wall is folded.</summary>
+        public bool IsWindowRowShown(int windowId)
+        {
+            return _windowRows.TryGetValue(windowId, out SurfaceRow row) && row != null &&
+                   row.gameObject.activeSelf;
+        }
+
         /// <summary>Both ids arrive together, so one call repaints both rows and nothing else (LIST AC2).</summary>
         private void OnSelectionChanged(int? previous, int? current)
         {
@@ -158,10 +224,124 @@ namespace Formify.Presentation
             SetRow(current, true);
         }
 
+        private void OnWindowSelectionChanged(int? previous, int? current)
+        {
+            SetWindowRow(previous, false);
+            SetWindowRow(current, true);
+        }
+
+        private void OnWindowAdded(WindowSpec spec)
+        {
+            if (spec == null) return;
+
+            AddWindowRow(spec);
+            RenumberWindows(spec.surfaceId);
+            RefreshWallDisclosure(spec.surfaceId);
+        }
+
+        private void OnWindowRemoved(WindowSpec spec)
+        {
+            if (spec == null) return;
+
+            if (_windowRows.TryGetValue(spec.id, out SurfaceRow row) && row != null)
+            {
+                // Unparented first for the same reason Configure does it: Destroy lands a frame later, and the
+                // rows below would keep its gap and its sibling index until then.
+                row.transform.SetParent(null, false);
+                Destroy(row.gameObject);
+            }
+
+            _windowRows.Remove(spec.id);
+            RenumberWindows(spec.surfaceId);
+            RefreshWallDisclosure(spec.surfaceId);
+        }
+
+        /// <summary>
+        /// One indented row directly under its wall, in the model's own window order. No index column: the
+        /// indent says whose it is and the label says which one.
+        /// </summary>
+        private void AddWindowRow(WindowSpec spec)
+        {
+            if (spec == null || _model == null) return;
+            if (!_rows.TryGetValue(spec.surfaceId, out SurfaceRow wallRow) || wallRow == null) return;
+
+            int windowId = spec.id;
+            int ordinal = OrdinalOf(spec);
+
+            SurfaceRow row = SurfaceRow.Create(rowContainer.transform, WindowRowNamePrefix + windowId, 0,
+                WindowLabel(ordinal), windowRowHeight, () => SelectWindowRow(windowId), windowRowIndent);
+
+            row.transform.SetSiblingIndex(wallRow.transform.GetSiblingIndex() + 1 + ordinal);
+            row.gameObject.SetActive(IsWallExpanded(spec.surfaceId));
+            _windowRows[windowId] = row;
+        }
+
+        /// <summary>The labels count per wall, so removing the first window renames the ones that stay.</summary>
+        private void RenumberWindows(int surfaceId)
+        {
+            if (_model == null) return;
+
+            IReadOnlyList<WindowSpec> windows = _model.GetWindows(surfaceId);
+            for (int i = 0; i < windows.Count; i++)
+            {
+                if (windows[i] == null) continue;
+                if (_windowRows.TryGetValue(windows[i].id, out SurfaceRow row) && row != null)
+                    row.SetLabel(WindowLabel(i));
+            }
+        }
+
+        /// <summary>The disclosure dot only means something on a wall that has windows to fold.</summary>
+        private void RefreshWallDisclosure(int surfaceId)
+        {
+            if (_model == null) return;
+            if (!_rows.TryGetValue(surfaceId, out SurfaceRow wallRow) || wallRow == null) return;
+
+            wallRow.SetDiscloseVisible(_model.GetWindows(surfaceId).Count > 0);
+            wallRow.SetExpanded(IsWallExpanded(surfaceId));
+        }
+
+        private void ApplyWallCollapse(int surfaceId)
+        {
+            if (_model == null) return;
+
+            bool expanded = IsWallExpanded(surfaceId);
+            IReadOnlyList<WindowSpec> windows = _model.GetWindows(surfaceId);
+
+            for (int i = 0; i < windows.Count; i++)
+            {
+                if (windows[i] == null) continue;
+                if (_windowRows.TryGetValue(windows[i].id, out SurfaceRow row) && row != null)
+                    row.gameObject.SetActive(expanded);
+            }
+
+            if (_rows.TryGetValue(surfaceId, out SurfaceRow wallRow) && wallRow != null)
+                wallRow.SetExpanded(expanded);
+        }
+
+        private int OrdinalOf(WindowSpec spec)
+        {
+            IReadOnlyList<WindowSpec> windows = _model.GetWindows(spec.surfaceId);
+            for (int i = 0; i < windows.Count; i++)
+            {
+                if (windows[i] != null && windows[i].id == spec.id) return i;
+            }
+            return windows.Count;
+        }
+
+        private static string WindowLabel(int ordinal) => "Window " + (ordinal + 1);
+
         private void SetRow(int? surfaceId, bool selected)
         {
             if (surfaceId == null || _model == null) return;
             if (!_rows.TryGetValue(surfaceId.Value, out SurfaceRow row) || row == null) return;
+
+            row.SetSelected(selected);
+        }
+
+        private void SetWindowRow(int? windowId, bool selected)
+        {
+            if (windowId == null || _model == null) return;
+            if (!_windowRows.TryGetValue(windowId.Value, out SurfaceRow row) || row == null) return;
 
             row.SetSelected(selected);
         }
@@ -304,9 +484,19 @@ namespace Formify.Presentation
 #endif
         }
 
+        private void Unsubscribe()
+        {
+            if (_model == null) return;
+
+            _model.SelectionChanged -= OnSelectionChanged;
+            _model.WindowSelectionChanged -= OnWindowSelectionChanged;
+            _model.WindowAdded -= OnWindowAdded;
+            _model.WindowRemoved -= OnWindowRemoved;
+        }
+
         private void OnDestroy()
         {
-            if (_model != null) _model.SelectionChanged -= OnSelectionChanged;
+            Unsubscribe();
             _model = null;
 
             if (_createdEventSystem != null) Destroy(_createdEventSystem);
