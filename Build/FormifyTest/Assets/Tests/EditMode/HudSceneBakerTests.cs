@@ -3,8 +3,8 @@ using Formify.EditorTools;
 using Formify.Presentation;
 using NUnit.Framework;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -18,22 +18,46 @@ namespace Formify.Tests.EditMode
     public class HudSceneBakerTests
     {
         private Scene _scene;
-        private Scene _previous;
 
+        /// <summary>
+        /// The bake works on the active scene, and the EditMode runner already opens an untitled scene of its own
+        /// for the run — that is the sandbox this fixture wants. It cannot make one itself: Unity refuses to add
+        /// an untitled scene additively ("Cannot create a new scene additively with an untitled scene unsaved"),
+        /// and swapping the whole setup would throw away whatever the editor had open. So it uses the runner's
+        /// scene and clears out after itself. If a *saved* scene is active this is not the runner, and baking
+        /// would rewrite a real HUD in memory - so it skips instead.
+        /// </summary>
         [SetUp]
         public void SetUp()
         {
-            // Own scene: the bake edits whatever is active, and eating the user's open scene is not a test.
-            _previous = SceneManager.GetActiveScene();
-            _scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-            SceneManager.SetActiveScene(_scene);
+            _scene = SceneManager.GetActiveScene();
+
+            if (!string.IsNullOrEmpty(_scene.path))
+                Assert.Ignore("a saved scene is active - the bake would edit it; run this from the Test Runner");
+
+            CleanScene();
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (_previous.IsValid()) SceneManager.SetActiveScene(_previous);
-            if (_scene.IsValid()) EditorSceneManager.CloseScene(_scene, true);
+            CleanScene();
+        }
+
+        /// <summary>Only what this fixture puts there: the baked HUD, its EventSystem, and the wiring stand-in.</summary>
+        private void CleanScene()
+        {
+            HudSceneBaker.Clear();
+            DestroyAll(FindAll<EventSystem>());
+            DestroyAll(FindAll<RoomBootstrap>());
+        }
+
+        private static void DestroyAll<T>(List<T> components) where T : Component
+        {
+            for (int i = 0; i < components.Count; i++)
+            {
+                if (components[i] != null) Object.DestroyImmediate(components[i].gameObject);
+            }
         }
 
         [Test]
@@ -92,7 +116,14 @@ namespace Formify.Tests.EditMode
 
             Assert.That(FindFirst<RoomBootstrap>(), Is.Null,
                 "the bake scaffold survived — the scene would build a second room at play");
-            Assert.That(FindFirst<Camera>(), Is.Null, "the bake's throwaway camera survived");
+            // Not "no camera at all" - the runner's own scene ships one. The scaffold names its throwaway parts
+            // with a leading ~, and none of those may outlive the bake.
+            List<Camera> cameras = FindAll<Camera>();
+            for (int i = 0; i < cameras.Count; i++)
+            {
+                Assert.That(cameras[i].name, Does.Not.StartWith("~"),
+                    "the bake's throwaway camera survived");
+            }
         }
 
         /// <summary>The scene's own bootstrap is pointed at what was baked, so play binds without searching.</summary>
