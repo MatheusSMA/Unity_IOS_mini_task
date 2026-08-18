@@ -85,19 +85,19 @@ namespace Formify.Tests.PlayMode
             {
                 bool expected = expectedSelectedId.HasValue && surface.id == expectedSelectedId.Value;
                 Assert.AreEqual(expected, _panel.IsRowSelected(surface.id), "IsRowSelected for " + surface.name);
-                Assert.AreEqual(
-                    expected ? surface.name + SurfaceListPanel.SelectedMarker : surface.name,
-                    _panel.GetRowLabel(surface.id),
-                    "GetRowLabel for " + surface.name);
             }
         }
 
-        private Dictionary<int, string> SnapshotLabels()
+        /// <summary>
+        /// The row's own state, not its label text: selection is a field on <see cref="SurfaceRow"/> (T31), so a
+        /// restyle that changes how a selected row looks cannot change what this test reads.
+        /// </summary>
+        private Dictionary<int, bool> SnapshotSelection()
         {
-            Dictionary<int, string> snapshot = new Dictionary<int, string>();
+            Dictionary<int, bool> snapshot = new Dictionary<int, bool>();
             foreach (SurfaceDefinition surface in _model.Surfaces)
             {
-                snapshot[surface.id] = _panel.GetRowLabel(surface.id);
+                snapshot[surface.id] = _panel.IsRowSelected(surface.id);
             }
             return snapshot;
         }
@@ -134,10 +134,10 @@ namespace Formify.Tests.PlayMode
             yield return null;
 
             _model.Select(WallA);
-            Assert.AreEqual("Wall 1" + SurfaceListPanel.SelectedMarker, _panel.GetRowLabel(WallA));
+            Assert.IsTrue(_panel.IsRowSelected(WallA));
             AssertOnlySelected(WallA);
 
-            Dictionary<int, string> before = SnapshotLabels();
+            Dictionary<int, bool> before = SnapshotSelection();
 
             _model.Select(WallB);
             yield return null;
@@ -145,12 +145,13 @@ namespace Formify.Tests.PlayMode
             List<int> changed = new List<int>();
             foreach (SurfaceDefinition surface in _model.Surfaces)
             {
-                if (before[surface.id] != _panel.GetRowLabel(surface.id)) changed.Add(surface.id);
+                if (before[surface.id] != _panel.IsRowSelected(surface.id)) changed.Add(surface.id);
             }
 
             CollectionAssert.AreEquivalent(new[] { WallA, WallB }, changed, "only the two affected rows repaint");
-            Assert.AreEqual("Wall 1", _panel.GetRowLabel(WallA));
-            Assert.AreEqual("Wall 2" + SurfaceListPanel.SelectedMarker, _panel.GetRowLabel(WallB));
+            Assert.IsFalse(_panel.IsRowSelected(WallA));
+            Assert.IsTrue(_panel.IsRowSelected(WallB));
+            Assert.AreEqual("Wall 1", _panel.GetRowLabel(WallA), "the name is still the row's text");
             AssertOnlySelected(WallB);
         }
 
@@ -167,7 +168,37 @@ namespace Formify.Tests.PlayMode
 
             Assert.IsNull(_model.SelectedSurfaceId);
             Assert.AreEqual("Floor", _panel.GetRowLabel(FloorId));
+            Assert.IsFalse(_panel.IsRowSelected(FloorId));
             AssertOnlySelected(null);
+        }
+
+        /// <summary>T31 / HUD-01 AC3: the row's field decides, the label text does not.</summary>
+        [UnityTest]
+        public IEnumerator SelectedState_LivesOnTheRow_NotInTheLabelText()
+        {
+            yield return null;
+
+            SurfaceRow row = null;
+            foreach (SurfaceRow candidate in _panel.Canvas.GetComponentsInChildren<SurfaceRow>(true))
+            {
+                if (candidate.name == RowNamePrefix + "Wall 1") row = candidate;
+            }
+
+            Assert.IsNotNull(row, "the Wall 1 row carries a SurfaceRow component");
+            Assert.IsFalse(row.IsSelected);
+
+            _model.Select(WallA);
+            yield return null;
+
+            Assert.IsTrue(row.IsSelected, "selecting the surface sets the row's own state");
+            Assert.IsTrue(_panel.IsRowSelected(WallA));
+
+            // Rewriting what is rendered must not change what is selected.
+            row.Label.text = "Wall 1";
+            Assert.IsTrue(_panel.IsRowSelected(WallA), "the label text is not the source of truth");
+
+            row.Label.text = "Floor" + SurfaceRow.SelectedMarker;
+            Assert.IsFalse(_panel.IsRowSelected(FloorId), "another row's text cannot mark it selected");
         }
 
         [UnityTest]

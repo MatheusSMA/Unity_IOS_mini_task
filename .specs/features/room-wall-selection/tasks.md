@@ -916,9 +916,9 @@ T31 -> T32
 
 **Done when**:
 
-- [ ] Selected state readable without parsing the label text; label text is no longer the source of truth for selection
-- [ ] The four tests that read the label suffix assert the new field; LIST-01, LIST-02 and EDGE-06 coverage is unchanged
-- [ ] Gate passes: run_tests EditMode + PlayMode (152/152 baseline holds)
+- [x] Selected state readable without parsing the label text; label text is no longer the source of truth for selection
+- [x] The four tests that read the label suffix assert the new field; LIST-01, LIST-02 and EDGE-06 coverage is unchanged
+- [x] Gate passes: run_tests EditMode + PlayMode (152/152 baseline holds)
 
 **Tests**: PlayMode
 **Gate**: full

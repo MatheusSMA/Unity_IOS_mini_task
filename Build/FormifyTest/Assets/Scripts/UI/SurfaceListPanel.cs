@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Formify.Domain;
 using TMPro;
@@ -17,9 +16,6 @@ namespace Formify.Presentation
     /// </summary>
     public class SurfaceListPanel : MonoBehaviour
     {
-        /// <summary>Suffix appended to a row label while that surface is the selected one.</summary>
-        public const string SelectedMarker = "  [SELECTED]";
-
         private const string RowNamePrefix = "Row_";
 
         [SerializeField] private float panelWidth = 260f;
@@ -27,7 +23,7 @@ namespace Formify.Presentation
         [SerializeField] private float fontSize = 20f;
         [SerializeField] private float panelMargin = 16f;
 
-        private readonly Dictionary<int, TextMeshProUGUI> _rows = new Dictionary<int, TextMeshProUGUI>();
+        private readonly Dictionary<int, SurfaceRow> _rows = new Dictionary<int, SurfaceRow>();
 
         private RoomModel _model;
         private RectTransform _panelRoot;
@@ -52,7 +48,7 @@ namespace Formify.Presentation
 
             if (_model != null) _model.SelectionChanged -= OnSelectionChanged;
 
-            foreach (TextMeshProUGUI row in _rows.Values)
+            foreach (SurfaceRow row in _rows.Values)
             {
                 if (row != null) Destroy(row.gameObject);
             }
@@ -83,18 +79,16 @@ namespace Formify.Presentation
             if (_collapseLabel != null) _collapseLabel.text = collapsing ? "+ Surfaces" : "- Surfaces";
         }
 
-        /// <summary>Row state as rendered, not as modelled: reads the row's own label text.</summary>
+        /// <summary>Row state as the row itself holds it — no label parsing (HUD-01 AC3).</summary>
         public bool IsRowSelected(int surfaceId)
         {
-            return _rows.TryGetValue(surfaceId, out TextMeshProUGUI label)
-                   && label != null
-                   && label.text.EndsWith(SelectedMarker, StringComparison.Ordinal);
+            return _rows.TryGetValue(surfaceId, out SurfaceRow row) && row != null && row.IsSelected;
         }
 
         /// <summary>The exact text shown for that surface, or null when there is no such row.</summary>
         public string GetRowLabel(int surfaceId)
         {
-            return _rows.TryGetValue(surfaceId, out TextMeshProUGUI label) && label != null ? label.text : null;
+            return _rows.TryGetValue(surfaceId, out SurfaceRow row) && row != null ? row.Text : null;
         }
 
         /// <summary>Both ids arrive together, so one call repaints both rows and nothing else (LIST AC2).</summary>
@@ -107,20 +101,12 @@ namespace Formify.Presentation
         private void SetRow(int? surfaceId, bool selected)
         {
             if (surfaceId == null || _model == null) return;
-            if (!_rows.TryGetValue(surfaceId.Value, out TextMeshProUGUI label) || label == null) return;
+            if (!_rows.TryGetValue(surfaceId.Value, out SurfaceRow row) || row == null) return;
 
-            SurfaceDefinition surface = _model.GetSurface(surfaceId.Value);
-            if (surface == null) return;
-
-            label.text = LabelFor(surface, selected);
+            row.SetSelected(selected);
         }
 
-        private static string LabelFor(SurfaceDefinition surface, bool selected)
-        {
-            return selected ? surface.name + SelectedMarker : surface.name;
-        }
-
-        private TextMeshProUGUI CreateRow(SurfaceDefinition surface)
+        private SurfaceRow CreateRow(SurfaceDefinition surface)
         {
             RectTransform row = NewUiObject(RowNamePrefix + surface.name, _rowContainer.transform);
 
@@ -133,8 +119,10 @@ namespace Formify.Presentation
             label.color = Color.white;
             label.alignment = TextAlignmentOptions.MidlineLeft;
             label.raycastTarget = false;
-            label.text = LabelFor(surface, false);
-            return label;
+
+            SurfaceRow surfaceRow = row.gameObject.AddComponent<SurfaceRow>();
+            surfaceRow.Initialize(surface.name, label);
+            return surfaceRow;
         }
 
         private void BuildCanvas()

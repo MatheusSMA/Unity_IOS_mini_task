@@ -23,8 +23,8 @@ Same coverage, new sensor: selection moves → exactly two rows change state; co
 
 ## Done when
 
-- [ ] Selected state readable without parsing label text; label text no longer the source of truth for selection
-- [ ] The four suffix-reading tests assert the new field; LIST-01, LIST-02 and EDGE-06 coverage unchanged
-- [ ] `run_tests` EditMode + PlayMode green (152/152 baseline holds)
+- [x] Selected state readable without parsing label text; label text no longer the source of truth for selection
+- [x] The four suffix-reading tests assert the new field; LIST-01, LIST-02 and EDGE-06 coverage unchanged
+- [x] `run_tests` EditMode + PlayMode green (152/152 baseline holds)
 
 **Tools**: unity-mcp (run_tests) | **Commit**: `[refactor] expose surface row selection as state`
