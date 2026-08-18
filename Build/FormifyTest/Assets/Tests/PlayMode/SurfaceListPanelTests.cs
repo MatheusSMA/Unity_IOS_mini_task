@@ -235,5 +235,74 @@ namespace Formify.Tests.PlayMode
             Assert.IsTrue(collapseControl.gameObject.activeInHierarchy);
             AssertOnlySelected(WallC);
         }
+
+        /// <summary>
+        /// LIST-01. The art kit turned the panel into opaque HUD, and opaque HUD stops the tap before it can
+        /// reach the room (EDGE-02) — so the rows have to be what the finger reaches instead. Asserted both
+        /// ways: the row is the topmost graphic at its own centre, and pressing it selects that surface.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ARowIsWhatAFingerReaches_AndPressingItSelectsThatSurface()
+        {
+            yield return null;
+            yield return null;
+
+            SurfaceRow row = Row(ExpectedNames[1]);
+            Assert.IsNotNull(row.Button, "the kit draws the rows as list items, so they carry a button");
+
+            var raycaster = _panel.Canvas.GetComponent<GraphicRaycaster>();
+            var data = new PointerEventData(EventSystem.current) { position = ScreenCentreOf(row) };
+            var hits = new List<RaycastResult>();
+            raycaster.Raycast(data, hits);
+
+            Assert.Greater(hits.Count, 0, "the row is reachable at all");
+            Assert.IsTrue(hits[0].gameObject.transform.IsChildOf(row.transform),
+                "the topmost graphic at the row's centre belongs to the row, not decoration in front of it; got " +
+                hits[0].gameObject.name);
+
+            row.Button.onClick.Invoke();
+
+            Assert.AreEqual(WallB, _model.SelectedSurfaceId, "pressing the Wall 2 row selects Wall 2");
+            AssertOnlySelected(WallB);
+        }
+
+        /// <summary>
+        /// The gate the owner passes in. AD-015 locks the target wall while a window is being drawn, and that has
+        /// to hold for a tap on the list exactly as it holds for a tap on the wall itself.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ARowPressIsRefusedWhileTheCallerSaysSelectionIsLocked()
+        {
+            bool locked = false;
+            _panel.Configure(_model, () => !locked);
+            yield return null;
+
+            Row(ExpectedNames[0]).Button.onClick.Invoke();
+            Assert.AreEqual(WallA, _model.SelectedSurfaceId, "unlocked, the press selects");
+
+            locked = true;
+            Row(ExpectedNames[1]).Button.onClick.Invoke();
+
+            Assert.AreEqual(WallA, _model.SelectedSurfaceId, "locked, the press changes nothing");
+            AssertOnlySelected(WallA);
+        }
+
+        private SurfaceRow Row(string surfaceName)
+        {
+            foreach (SurfaceRow row in _panel.Canvas.GetComponentsInChildren<SurfaceRow>(true))
+            {
+                if (row.name == RowNamePrefix + surfaceName) return row;
+            }
+
+            Assert.Fail("no row for " + surfaceName);
+            return null;
+        }
+
+        /// <summary>Screen point of the row's centre. The canvas is Screen Space - Overlay, so no camera.</summary>
+        private static Vector2 ScreenCentreOf(SurfaceRow row)
+        {
+            var rect = (RectTransform)row.transform;
+            return RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
+        }
     }
 }

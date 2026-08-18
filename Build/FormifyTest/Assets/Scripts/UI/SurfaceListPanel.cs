@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Formify.Domain;
 using UnityEngine;
@@ -28,6 +29,7 @@ namespace Formify.Presentation
         private readonly Dictionary<int, SurfaceRow> _rows = new Dictionary<int, SurfaceRow>();
 
         private RoomModel _model;
+        private Func<bool> _canSelect;
         private RectTransform _panelRoot;
         private GameObject _rowContainer;
         private Image _headerDot;
@@ -44,8 +46,12 @@ namespace Formify.Presentation
             if (Canvas == null) BuildCanvas();
         }
 
-        /// <summary>Builds one row per surface and binds to the model. Safe to call again with another model.</summary>
-        public void Configure(RoomModel model)
+        /// <summary>
+        /// Builds one row per surface and binds to the model. Safe to call again with another model.
+        /// <paramref name="canSelect"/> gates row taps: the caller owns the mode rules, so the panel does not
+        /// have to know about <see cref="ModeManager"/> to honour AD-015. Left null, every row tap selects.
+        /// </summary>
+        public void Configure(RoomModel model, Func<bool> canSelect = null)
         {
             if (Canvas == null) BuildCanvas();
 
@@ -56,6 +62,7 @@ namespace Formify.Presentation
             _rows.Clear();
 
             _model = model;
+            _canSelect = canSelect;
             SetHeaderCount(_model == null ? 0 : _model.Surfaces.Count);
             if (_model == null) return;
 
@@ -72,8 +79,9 @@ namespace Formify.Presentation
                     AddGroupDivider();
                 }
 
-                _rows[surface.id] = SurfaceRow.Create(_rowContainer.transform, RowNamePrefix + surface.name, i,
-                    surface.name, rowHeight);
+                int surfaceId = surface.id;   // captured per row, not per loop variable
+                _rows[surfaceId] = SurfaceRow.Create(_rowContainer.transform, RowNamePrefix + surface.name, i,
+                    surface.name, rowHeight, () => SelectRow(surfaceId));
             }
 
             _model.SelectionChanged += OnSelectionChanged;
@@ -88,6 +96,18 @@ namespace Formify.Presentation
             bool collapsing = _rowContainer.activeSelf;
             _rowContainer.SetActive(!collapsing);
             if (_headerDot != null) _headerDot.color = collapsing ? HudTheme.IdleLabel : HudTheme.Accent;
+        }
+
+        /// <summary>
+        /// LIST-01: the kit draws the rows as list items, so tapping one selects that surface. The panel is opaque
+        /// HUD and stops the tap (EDGE-02), so without this a finger on the list reaches nothing at all.
+        /// </summary>
+        private void SelectRow(int surfaceId)
+        {
+            if (_model == null) return;
+            if (_canSelect != null && !_canSelect()) return;
+
+            _model.Select(surfaceId);
         }
 
         /// <summary>Row state as the row itself holds it — no label parsing (HUD-01 AC3).</summary>

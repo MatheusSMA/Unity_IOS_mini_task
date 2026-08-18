@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace Formify.Presentation
@@ -17,6 +18,7 @@ namespace Formify.Presentation
         private const float TagWidth = 62f;
 
         private TextMeshProUGUI _label;
+        private Button _button;
         private Image _fill;
         private Image _mark;
         private RectTransform _tag;
@@ -29,9 +31,12 @@ namespace Formify.Presentation
 
         public TextMeshProUGUI Label => _label;
 
+        /// <summary>The row's own button, or null when it was built without a click handler.</summary>
+        public Button Button => _button;
+
         /// <summary>The kit's row: fill, 2 px selection mark, index, name and the green SELECTED tag.</summary>
         public static SurfaceRow Create(Transform parent, string objectName, int index, string surfaceName,
-            float height)
+            float height, UnityAction onClick = null)
         {
             RectTransform root = HudTheme.NewUi(objectName, parent);
 
@@ -41,7 +46,18 @@ namespace Formify.Presentation
 
             var row = root.gameObject.AddComponent<SurfaceRow>();
 
-            row._fill = HudTheme.AddImage(root, "Fill", "row_fill_9s", HudTheme.NeutralFill);
+            // The fill is the row's hit area: the kit draws these as list items, so they behave like list items.
+            row._fill = HudTheme.AddImage(root, "Fill", "row_fill_9s", HudTheme.NeutralFill, Image.Type.Sliced,
+                raycastTarget: true);
+
+            if (onClick != null)
+            {
+                row._button = root.gameObject.AddComponent<Button>();
+                row._button.targetGraphic = row._fill;
+                // The palette below IS the state readout; uGUI's tint would multiply on top of it.
+                row._button.transition = Selectable.Transition.None;
+                row._button.onClick.AddListener(onClick);
+            }
 
             RectTransform markRect = HudTheme.NewUi("Mark", root);
             markRect.anchorMin = new Vector2(0f, 0f);

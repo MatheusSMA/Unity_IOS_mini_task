@@ -147,7 +147,9 @@ namespace Formify.Presentation
             }
 
             ListPanel = gameObject.AddComponent<SurfaceListPanel>();
-            ListPanel.Configure(Model);
+            // AD-015: while a window is being drawn the target wall is locked, and that has to hold for a tap on
+            // the list exactly as it holds for a tap on the wall itself.
+            ListPanel.Configure(Model, () => Modes == null || Modes.Current != Mode.WindowDraw);
 
             Rail = BuildRightRail(ListPanel.Canvas);
 
