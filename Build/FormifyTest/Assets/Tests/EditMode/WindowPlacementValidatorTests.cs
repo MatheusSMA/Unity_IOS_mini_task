@@ -103,7 +103,10 @@ namespace Formify.Tests.EditMode
         [Test]
         public void RectAboveMaximumSize_IsRejectedAsTooLarge()
         {
-            var result = _validator.Validate(_wall, NoWindows, new Rect2D(0.5f, 0.2f, 2.5f, 2.2f));
+            // The shipped cap is 6 m per axis, so the wall has to be long enough to draw past it.
+            SurfaceDefinition longWall = MakeSurface(SurfaceKind.Wall, 9f, 2.8f);
+
+            var result = _validator.Validate(longWall, NoWindows, new Rect2D(0.5f, 0.2f, 6.5f, 2.2f));
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual(WindowRejection.TooLarge, result.Rejection);
@@ -175,10 +178,24 @@ namespace Formify.Tests.EditMode
             Assert.AreEqual(WindowRejection.TooSmall, result.Rejection);
         }
 
+        /// <summary>The reason the cap moved: a picture window across most of a long wall has to be legal.</summary>
+        [Test]
+        public void ALargePictureWindow_FitsUnderTheShippedMaximum()
+        {
+            SurfaceDefinition longWall = MakeSurface(SurfaceKind.Wall, 9f, 2.8f);
+
+            var result = _validator.Validate(longWall, NoWindows, new Rect2D(1f, 0.4f, 6f, 2f));
+
+            Assert.IsTrue(result.IsValid, "rejected as " + result.Rejection);
+            AssertRect(new Rect2D(1f, 0.4f, 6f, 2f), result.Rect);
+        }
+
         [Test]
         public void RectJustAboveTheMaximumSize_IsStillRejected()
         {
-            var result = _validator.Validate(_wall, NoWindows, new Rect2D(0.5f, 0.3f, 2.01f, 2.01f));
+            SurfaceDefinition longWall = MakeSurface(SurfaceKind.Wall, 9f, 2.8f);
+
+            var result = _validator.Validate(longWall, NoWindows, new Rect2D(0.5f, 0.3f, 6.01f, 2.01f));
 
             Assert.IsFalse(result.IsValid);
             Assert.AreEqual(WindowRejection.TooLarge, result.Rejection);

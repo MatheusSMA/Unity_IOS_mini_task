@@ -37,7 +37,14 @@ namespace Formify.Domain
         private const float SizeEpsilon = 1e-4f;
 
         public float MinSize { get; set; } = 0.2f;
-        public float MaxSize { get; set; } = 2.0f;
+
+        /// <summary>
+        /// Per axis, not area. Raised from 2.0 on 2026-08-18 on the owner's request: a 2 m cap made a picture
+        /// window impossible on a 9 m wall, and big openings are the point of the tool. Every rectangle is still
+        /// clamped into the wall bounds minus the edge margin first, so this only refuses the absurd ones.
+        /// </summary>
+        public float MaxSize { get; set; } = 6.0f;
+
         public float EdgeMargin { get; set; } = 0.1f;
 
         public ValidationResult Validate(SurfaceDefinition surface, IReadOnlyList<Rect2D> existing, Rect2D candidate)
