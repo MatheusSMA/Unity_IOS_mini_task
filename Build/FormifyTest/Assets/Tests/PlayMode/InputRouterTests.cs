@@ -102,14 +102,23 @@ namespace Formify.Tests.PlayMode
         [UnityTest]
         public IEnumerator TouchHeldPastTapDurationIsClassifiedAsDrag()
         {
+            // The hold is on InputRouter's clock seam, not on wall-clock time: spinning on Time.unscaledTime
+            // kept the stationary touch alive for ~30 frames, and EnhancedTouch sometimes dropped it from
+            // activeTouches first, which ends the gesture as a tap. Here the cutoff is crossed on one known frame.
+            Assert.That(router.UnscaledTime, Is.Not.Null, "the seam has a real default");
+            var now = 0f;
+            router.UnscaledTime = () => now;
+
             yield return null;
 
             BeginTouch(1, TapPosition);
             yield return null;
 
-            // tapDurationSeconds defaults to 0.3; hold clear of it without moving a pixel.
-            var until = Time.unscaledTime + 0.45f;
-            while (Time.unscaledTime < until) yield return null;
+            Assert.That(dragStarted, Is.EqualTo(0), "still inside the tap window at t = 0");
+
+            // tapDurationSeconds defaults to 0.3; step clear of it without moving a pixel.
+            now = 0.45f;
+            yield return null;
 
             Assert.That(dragStarted, Is.EqualTo(1));
             Assert.That(lastDragStart.x, Is.EqualTo(TapPosition.x).Within(0.5f));

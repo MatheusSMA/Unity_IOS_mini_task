@@ -26,6 +26,12 @@ namespace Formify.Presentation
         /// which never happens for a virtual touchscreen in batch mode — PlayMode tests replace the gate here.</summary>
         public Func<int, bool> IsPointerOverUi { get; set; } = PointerOverUi;
 
+        /// <summary>Clock behind the tapDurationSeconds cutoff, defaulting to the engine's unscaled time. It is
+        /// settable because the only other way to cross that cutoff is to hold a real touch for real seconds,
+        /// and EnhancedTouch may drop a stationary touch from activeTouches first — PlayMode tests move the
+        /// clock instead, so the reclassification lands on a known frame.</summary>
+        public Func<float> UnscaledTime { get; set; } = () => Time.unscaledTime;
+
         HashSet<int> currentIds = new HashSet<int>();
         HashSet<int> previousIds = new HashSet<int>();
         int trackedId = -1;
@@ -90,7 +96,7 @@ namespace Formify.Presentation
                 {
                     trackedId = touch.touchId;
                     startPosition = lastPosition = touch.screenPosition;
-                    startTime = Time.unscaledTime;
+                    startTime = UnscaledTime();
                     isDrag = false;
                 }
                 return;
@@ -109,7 +115,7 @@ namespace Formify.Presentation
                 lastPosition = position;
 
                 if (!isDrag && ((position - startPosition).magnitude > MoveThreshold ||
-                                Time.unscaledTime - startTime > tapDurationSeconds))
+                                UnscaledTime() - startTime > tapDurationSeconds))
                 {
                     isDrag = true;
                     DragStart?.Invoke(startPosition);
