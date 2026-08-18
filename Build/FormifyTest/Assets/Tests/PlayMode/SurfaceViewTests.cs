@@ -91,6 +91,26 @@ namespace Formify.Tests.PlayMode
             Assert.AreSame(_material, _meshRenderer.sharedMaterial);
         }
 
+        /// <summary>
+        /// SEL-02 in the kit palette (HUD-01): the selection tint is the kit's selected green, not a hand-picked
+        /// hex. It is Accent composited at SelectedRowFill's alpha, because the surface material is opaque URP
+        /// Lit and drops _BaseColor's alpha — a raw SelectedRowFill would repaint the wall solid green.
+        /// </summary>
+        [Test]
+        public void TintColour_IsTheKitSelectedGreen_OverTheSurfacesOwnColour()
+        {
+            Color expected = Color.Lerp(_view.BaseColor, HudTheme.Accent, HudTheme.SelectedRowFill.a);
+
+            AssertColour(expected, _view.TintColor, "kit tint");
+
+            // The saturation is the whole "tinted, not painted" claim: the raw accent spreads its channels
+            // wide (0.73), the composited tint barely at all (0.10).
+            Color tint = _view.TintColor;
+            float spread = tint.maxColorComponent - Mathf.Min(tint.r, Mathf.Min(tint.g, tint.b));
+            Assert.Less(spread, 0.5f,
+                "the wall must read tinted, not painted - a full-strength accent would be a solid green slab");
+        }
+
         [UnityTest]
         public IEnumerator Raycast_ThroughOpening_MissesCollider_AfterWindowAdded()
         {

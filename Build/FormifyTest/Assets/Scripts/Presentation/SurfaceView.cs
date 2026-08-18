@@ -13,6 +13,15 @@ namespace Formify.Presentation
     public class SurfaceView : MonoBehaviour
     {
         private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
+        private static readonly int OutlineColorProperty = Shader.PropertyToID("_OutlineColor");
+
+        /// <summary>
+        /// SEL-02 in the kit palette (HUD-01): Accent at SelectedRowFill's alpha, laid over the surface's own
+        /// colour. Composited HERE because the surface material is opaque URP Lit and throws _BaseColor's alpha
+        /// away — pushing SelectedRowFill straight in would repaint the wall solid green instead of tinting it.
+        /// </summary>
+        private static readonly Color KitTint =
+            Color.Lerp(Color.white, HudTheme.Accent, HudTheme.SelectedRowFill.a);
 
         private const int LayerUnresolved = -2;
 
@@ -33,7 +42,7 @@ namespace Formify.Presentation
         }
 
         [SerializeField] private Color baseColor = Color.white;
-        [SerializeField] private Color tintColor = new Color(1f, 0.45f, 0.05f, 1f);
+        [SerializeField] private Color tintColor = KitTint;
 
         private readonly List<Rect2D> _holes = new List<Rect2D>();
 
@@ -101,6 +110,11 @@ namespace Formify.Presentation
             IsTinted = selected;
             _meshRenderer.GetPropertyBlock(_block);
             _block.SetColor(BaseColorProperty, selected ? tintColor : baseColor);
+            // OUT-01 rides the SAME block: the two RenderObjects passes draw THIS renderer with the shared
+            // SelectionOutline override material, and a per-renderer block still overrides that material's
+            // _OutlineColor — so the ring turns the kit accent without instancing anything (AD-010). One
+            // selection, one look: the ring is the accent, the tint is the same green at the kit's row alpha.
+            _block.SetColor(OutlineColorProperty, HudTheme.Accent);
             _meshRenderer.SetPropertyBlock(_block);
 
             // OUT-01: the outline is a pair of RenderObjects passes filtered on the SelectedSurface

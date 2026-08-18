@@ -106,6 +106,28 @@ namespace Formify.Tests.PlayMode
             yield return null;
         }
 
+        /// <summary>
+        /// OUT-01 in the kit palette (HUD-01). The two RenderObjects passes draw the selected surface with the
+        /// shared SelectionOutline material, so the only per-surface hook is the renderer's property block —
+        /// the same one SEL-02's tint rides. Asserting the block is the closest a test gets to the ring's
+        /// colour; the drawn edge itself stays a human eye check in the Editor.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator The_outline_colour_comes_from_the_kit_accent()
+        {
+            var block = new MaterialPropertyBlock();
+
+            _model.Select(_wallA.id);
+            _viewA.GetComponent<MeshRenderer>().GetPropertyBlock(block);
+
+            Color outline = block.GetColor("_OutlineColor");
+            Assert.AreEqual(HudTheme.Accent.r, outline.r, 0.001f, "outline red");
+            Assert.AreEqual(HudTheme.Accent.g, outline.g, 0.001f, "outline green");
+            Assert.AreEqual(HudTheme.Accent.b, outline.b, 0.001f, "outline blue");
+            Assert.AreEqual(HudTheme.Accent.a, outline.a, 0.001f, "outline alpha");
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator The_selected_surface_stays_hittable_and_re_tapping_it_raises_nothing()
         {
