@@ -324,5 +324,7 @@ no test drives a physical mouse device.
   kit ships a disabled-but-visible state for the same button. Found while reconciling the docs after
   this report was written. AD-019 answered it on 2026-08-18 — the button stays on screen, disabled
   instead of hidden, with a state dot — which rewrote WIN-01 AC1 and returned that requirement to
-  `In Tasks`; T30 implements it and re-verifies. Not a test failure: every WIN-01 behaviour this
-  report asserted still holds against the rule that was in force when it ran.
+  `In Tasks`; T30 implemented it on 2026-08-18 — `Refresh()` now drives `Button.interactable`, the
+  enabled set is `Orbit or WindowDraw` so the exit branch is reachable (AD-021), and the fixture
+  asserts the state dot — which returned WIN-01 to `Verified`. Not a test failure: every WIN-01
+  behaviour this report asserted still holds against the rule that was in force when it ran.

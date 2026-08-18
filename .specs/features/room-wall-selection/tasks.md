@@ -873,9 +873,9 @@ T31 -> T32
 
 ### T30: Settle the window mode button's exit affordance + PlayMode test
 
-**Decided (AD-019), not started** - the owner is planning this change; do not start it unprompted.
+**Done** - AD-019 plus AD-021 (pressing the button while window mode is active exits to Orbit), landed 2026-08-18.
 
-**What**: The button stops appearing and disappearing. It stays on screen and carries its state visually: enabled while a Wall is selected in Orbit mode, disabled (art kit palette `E9FFF21A` border / `E9FFF205` fill / `4C6558` label) otherwise, with the state dot showing whether window mode is active. That supersedes AD-015's visibility rule, so `Refresh()` drives `Button.interactable` instead of `SetActive`, and the spec (WIN-01 AC1), `design.md`, T22 and the class comment are brought in line. Still to settle when planning: whether clicking the button while window mode is active exits the mode - that would make the existing branch in `OnClick` reachable, which is the only thing keeping it from being dead code.
+**What**: The button stops appearing and disappearing. It stays on screen and carries its state visually: enabled while a Wall is selected in Orbit mode, disabled (art kit palette `E9FFF21A` border / `E9FFF205` fill / `4C6558` label) otherwise, with the state dot showing whether window mode is active. That supersedes AD-015's visibility rule, so `Refresh()` drives `Button.interactable` instead of `SetActive`, and the spec (WIN-01 AC1), `design.md`, T22 and the class comment are brought in line. AD-021 settled the open question: clicking while window mode is active exits to Orbit, so the button stays enabled in WindowDraw and the `OnClick` branch is reachable rather than dead.
 **Where**: `Assets/Scripts/UI/WindowModeButton.cs`, `Assets/Tests/PlayMode/WindowModeButtonTests.cs`, `docs/tasks/T22-window-mode-button.md`, `design.md`
 **Depends on**: None (root of Phase 6)
 **Reuses**: T22 button, T13 ModeManager
@@ -888,11 +888,11 @@ T31 -> T32
 
 **Done when**:
 
-- [ ] `Refresh()` drives `interactable`, not `SetActive`; the button is never removed from the screen
-- [ ] PlayMode tests: the 4 cases from T22 assert enabled/disabled instead of visible/hidden, plus the state dot while mode == WindowDraw
-- [ ] No unreachable branch left in `WindowModeButton.OnClick`
-- [ ] WIN-01 AC1 returns to `Verified` in the spec's traceability table
-- [ ] Gate passes: run_tests EditMode + PlayMode
+- [x] `Refresh()` drives `interactable`, not `SetActive`; the button is never removed from the screen
+- [x] PlayMode tests: the 4 cases from T22 assert enabled/disabled instead of visible/hidden, plus the state dot while mode == WindowDraw
+- [x] No unreachable branch left in `WindowModeButton.OnClick`
+- [x] WIN-01 AC1 returns to `Verified` in the spec's traceability table
+- [x] Gate passes: run_tests EditMode + PlayMode
 
 **Tests**: PlayMode
 **Gate**: full

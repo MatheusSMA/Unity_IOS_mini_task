@@ -1,7 +1,7 @@
 # T30 — Settle the window mode button's exit affordance + PlayMode test
 
 **Phase**: 6 (P4 follow-up) | **Requirement**: WIN-01 (AC1) | **Depends on**: none | **Tests**: PlayMode | **Gate**: full
-**Decided**: AD-019 (2026-08-18) — the owner is planning this change; do not start it unprompted.
+**Decided**: AD-019 and AD-021 (2026-08-18). **Done** — implemented 2026-08-18.
 
 ## Functional description
 
@@ -13,7 +13,7 @@ The button stops appearing and disappearing. It stays on screen and shows its st
 
 That supersedes AD-015's visibility rule, and it settles a disagreement that had been sitting in three artefacts at once: the code hid the button (`Refresh()` calls `SetActive(false)` the moment the mode leaves Orbit), so the exit branch in `OnClick` was unreachable, while T22 and the class comment both called that branch the exit and the art kit shipped a disabled-but-visible state. A button that vanishes also left no visible way out of window mode — the only exits were completing a drag or switching views.
 
-**Still to settle when planning this task:** whether clicking the button while window mode is active exits the mode. That is the only thing that would make the existing `OnClick` branch reachable; without it, the branch is dead code and should be deleted.
+**Settled by AD-021:** clicking the button while window mode is active exits back to Orbit. The enabled set is therefore `Wall selected AND (mode == Orbit OR mode == WindowDraw)`, which keeps the `OnClick` branch reachable instead of dead, and gives window mode the visible exit AD-019 was after. A disabled button does nothing when pressed.
 
 ## Technical description
 
@@ -28,10 +28,10 @@ The four cases from T22 become enabled/disabled assertions instead of visible/hi
 
 ## Done when
 
-- [ ] `Refresh()` drives `interactable`, not `SetActive`; the button is never removed from the screen
-- [ ] Code, tests, T22, the class comment and `design.md` all describe the same behaviour
-- [ ] No unreachable branch left in `WindowModeButton.OnClick`
-- [ ] WIN-01 AC1 returns to `Verified` in the spec's traceability table
-- [ ] `run_tests` EditMode + PlayMode green
+- [x] `Refresh()` drives `interactable`, not `SetActive`; the button is never removed from the screen
+- [x] Code, tests, T22, the class comment and `design.md` all describe the same behaviour
+- [x] No unreachable branch left in `WindowModeButton.OnClick`
+- [x] WIN-01 AC1 returns to `Verified` in the spec's traceability table
+- [x] `run_tests` EditMode + PlayMode green
 
 **Tools**: unity-mcp (run_tests) | **Commit**: `[fix] align window mode button exit behaviour`

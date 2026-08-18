@@ -155,7 +155,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 
 **Acceptance Criteria**:
 
-1. The system SHALL keep the window mode button on screen at all times and SHALL enable it only WHILE the selected surface is a Wall AND the active mode is Orbit; when nothing is selected, the Floor or Ceiling is selected, or the app is in AR / 2D mode the button SHALL be disabled rather than hidden, and its state dot SHALL show whether window mode is active (AD-019, supersedes AD-015's visibility rule). <!-- state-driven -->
+1. The system SHALL keep the window mode button on screen at all times and SHALL enable it only WHILE the selected surface is a Wall AND the active mode is Orbit or WindowDraw; when nothing is selected, the Floor or Ceiling is selected, or the app is in AR / 2D mode the button SHALL be disabled rather than hidden, its state dot SHALL show whether window mode is active, and WHEN it is pressed while window mode is active the system SHALL return to Orbit (AD-019 and AD-021, superseding AD-015's visibility rule). A disabled button SHALL change nothing when pressed. <!-- state-driven -->
 2. WHEN the user activates window mode via its button THEN the system SHALL route wall drags to window drawing instead of camera orbit. <!-- event-driven -->
 3. WHILE the user drags on a wall in window mode the system SHALL display a real-time rectangle preview between the drag start corner and the current finger position, projected onto that wall. <!-- state-driven -->
 4. WHEN the user releases a valid drag THEN the system SHALL cut a rectangular hole through the solid wall mesh — including the four reveal faces of the opening — so the outside is visible through it. <!-- event-driven -->
@@ -291,7 +291,7 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | LIST-01 | P1: Real-time surface list | Tasks | Verified |
 | LIST-02 | P1: Real-time surface list | Tasks | Verified |
 | CLR-01 | P1: Clear selection | Tasks | Verified |
-| WIN-01 | P2: Window holes by rectangle drag | Tasks | In Tasks |
+| WIN-01 | P2: Window holes by rectangle drag | Tasks | Verified |
 | WIN-02 | P2: Window holes by rectangle drag | Tasks | Verified |
 | WIN-03 | P2: Window holes by rectangle drag | Tasks | Verified |
 | WIN-04 | P2: Window deletion | Tasks | Verified |
@@ -307,9 +307,9 @@ Every ambiguity is resolved or recorded here - nothing is left silently unclear.
 | EDGE-06 | Edge Cases | Tasks | Verified |
 | HUD-01 | P4: HUD visual pass | Tasks | Pending |
 
-**ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating (mode == Orbit) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8); HUD-01 art-kit HUD pass incl. selected-state field and raycast hygiene (H all).
+**ID map:** BOOT-01 project bootstrap (P0 all); ROOM-01 room generation with solid surfaces (P1.1); CAM-01 orbit drag (P1.2, P1.5); CAM-02 pitch clamp + Orbit-mode containment (P1.3, P1.4); SEL-01 single-selection tap semantics (S2.1-S2.3); SEL-02 tint feedback (S2.4); SEL-03 tap/drag discrimination + through-opening miss + window-collider routing (S2.5-S2.7); LIST-01 real-time list with (previous, current) update (S3.1, S3.2); LIST-02 collapsible panel (S3.3, S3.4); CLR-01 clear button, idempotent, window-mode interaction (S4 all); WIN-01 mode entry gating and exit (enabled in Orbit or WindowDraw) + routing + tap lock while drawing (W.1, W.2, W.13); WIN-02 preview + solid-mesh cut + collider sync + through-ray (W.3, W.4, W.5, W.12); WIN-03 validation rules incl. max size and edge margin (W.6-W.11); WIN-04 window deletion (D all); OUT-01 outline polish + raycast mask (O all); AR-01 AR pose camera (AR all); TOP-01 2D/3D switch, ceiling disable, camera reset, fit-to-room framing + pinch zoom (T.1, T.2, T.5, T.7, T.9); TOP-02 state cancel on entry + interactive plan selection incl. wall-tap tolerance (T.3, T.4, T.6, T.8); HUD-01 art-kit HUD pass incl. selected-state field and raycast hygiene (H all).
 
-**WIN-01 is back In Tasks:** AC2-AC13 are implemented and verified; AC1 was rewritten on 2026-08-18 by AD-019 (button disabled instead of hidden, with a state dot) and the code still implements the old rule. T30 brings it in line and re-verifies.
+**WIN-01 AC1 was rewritten on 2026-08-18** by AD-019 (button disabled instead of hidden, with a state dot) and AD-021 (pressing it while window mode is active exits to Orbit). T30 implemented both and the PlayMode fixture now asserts enabled/disabled, the state dot and both click directions, so WIN-01 is back to `Verified`.
 
 **UAT-pending ACs:** BOOT-01 AC5 (iOS build-target switch), OUT-01 AC1 (outline appearance) and AR-01 (real XR Simulation pose) are `Verified` for everything automation can assert; each carries one human check listed in `validation.md` section 7. Every other AC is verified by an automated test.
 
