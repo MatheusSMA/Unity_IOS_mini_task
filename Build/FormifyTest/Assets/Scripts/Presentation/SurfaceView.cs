@@ -62,8 +62,8 @@ namespace Formify.Presentation
             if (_model != null)
             {
                 _model.SelectionChanged -= OnSelectionChanged;
-                _model.WindowAdded -= OnWindowChanged;
-                _model.WindowRemoved -= OnWindowChanged;
+                _model.WindowAdded -= OnWindowAdded;
+                _model.WindowRemoved -= OnWindowRemoved;
             }
 
             if (_mesh != null) Destroy(_mesh);
@@ -86,8 +86,8 @@ namespace Formify.Presentation
             if (_model != null)
             {
                 _model.SelectionChanged += OnSelectionChanged;
-                _model.WindowAdded += OnWindowChanged;
-                _model.WindowRemoved += OnWindowChanged;
+                _model.WindowAdded += OnWindowAdded;
+                _model.WindowRemoved += OnWindowRemoved;
             }
 
             SetTint(_model != null && _model.SelectedSurfaceId == surface.id);
@@ -172,10 +172,23 @@ namespace Formify.Presentation
             SetTint(current == Surface.id);
         }
 
-        private void OnWindowChanged(WindowSpec spec)
+        /// <summary>
+        /// EDGE-05: the rebuild is the operation. When the builder rejects the new geometry the previous mesh
+        /// and collider stay live, so the model has to drop the window entry too — otherwise it claims an
+        /// opening the wall does not have.
+        /// </summary>
+        private void OnWindowAdded(WindowSpec spec)
         {
-            if (Surface == null || spec == null || spec.surfaceId != Surface.id) return;
-            Rebuild();
+            if (!Owns(spec) || Rebuild()) return;
+            _model.RollbackWindowAdd(spec.id);
         }
+
+        private void OnWindowRemoved(WindowSpec spec)
+        {
+            if (!Owns(spec) || Rebuild()) return;
+            _model.RollbackWindowRemove(spec);
+        }
+
+        private bool Owns(WindowSpec spec) => Surface != null && spec != null && spec.surfaceId == Surface.id;
     }
 }

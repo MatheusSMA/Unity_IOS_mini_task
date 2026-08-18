@@ -151,6 +151,40 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(triangles, _meshCollider.sharedMesh.triangles.Length);
         }
 
+        /// <summary>
+        /// EDGE-05, the other half: a rebuild the builder rejects must also reject the operation, so the model
+        /// stops claiming an opening the wall does not have. Thickness 0 fails SurfaceMeshBuilder but not the
+        /// placement validator, so the add is accepted by the model and only the geometry refuses it.
+        /// </summary>
+        [Test]
+        public void FailedRebuild_AfterAdd_RollsTheWindowBackOutOfTheModel()
+        {
+            Mesh previous = _meshCollider.sharedMesh;
+            _wall.thickness = 0f;
+
+            Assert.IsTrue(_model.TryAddWindow(WallId, Opening, out WindowRejection reason), "rejected: " + reason);
+
+            Assert.AreEqual(0, _model.GetWindows(WallId).Count, "the model must not keep a window the wall refused");
+            Assert.AreSame(previous, _meshCollider.sharedMesh);
+            Assert.AreSame(previous, _meshFilter.sharedMesh);
+        }
+
+        [Test]
+        public void FailedRebuild_AfterRemove_RestoresTheWindowInTheModel()
+        {
+            Assert.IsTrue(_model.TryAddWindow(WallId, Opening, out WindowRejection reason), "rejected: " + reason);
+            int windowId = _model.GetWindows(WallId)[0].id;
+            Mesh previous = _meshCollider.sharedMesh;
+
+            _wall.thickness = 0f;
+            Assert.IsTrue(_model.TryRemoveWindow(windowId));
+
+            IReadOnlyList<WindowSpec> windows = _model.GetWindows(WallId);
+            Assert.AreEqual(1, windows.Count, "the window is still cut into the live mesh, so it stays in the model");
+            Assert.AreEqual(windowId, windows[0].id);
+            Assert.AreSame(previous, _meshCollider.sharedMesh);
+        }
+
         /// <summary>Fires from 1 m in front of the surface point, straight along -Normal, through the slab.</summary>
         private bool RayHitsCollider(Vector2 surfaceLocal)
         {
