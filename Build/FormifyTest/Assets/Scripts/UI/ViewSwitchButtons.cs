@@ -20,15 +20,19 @@ namespace Formify.Presentation
         [SerializeField] private float topMargin = 12f;
         [SerializeField] private float fontSize = 13f;
 
+        // Serialized: the baked scene HUD (AD-025) already holds the toggle, so Configure only rebinds it.
+        [SerializeField] private Canvas canvas;
+        [SerializeField] private RectTransform root;
+        [SerializeField] private Button twoDButton;
+        [SerializeField] private Button threeDButton;
+
         private ModeManager _modes;
-        private Canvas _canvas;
-        private RectTransform _root;
 
         /// <summary>The "2D" button. Non-null once <see cref="Configure"/> has been given a canvas.</summary>
-        public Button TwoDButton { get; private set; }
+        public Button TwoDButton => twoDButton;
 
         /// <summary>The "3D" button. Non-null once <see cref="Configure"/> has been given a canvas.</summary>
-        public Button ThreeDButton { get; private set; }
+        public Button ThreeDButton => threeDButton;
 
         /// <summary>The mode is the authority, not which button was pressed last.</summary>
         public bool IsTwoDActive => _modes != null && _modes.Current == Mode.TopDown;
@@ -43,11 +47,11 @@ namespace Formify.Presentation
             Unsubscribe();
             _modes = modes;
 
-            if (uiCanvas != null && _canvas != uiCanvas)
+            if (uiCanvas != null && canvas != uiCanvas)
             {
-                _canvas = uiCanvas;
-                if (_root == null) BuildButtons();
-                else _root.SetParent(_canvas.transform, false);
+                canvas = uiCanvas;
+                if (root == null) BuildButtons();
+                else root.SetParent(canvas.transform, false);
             }
 
             Wire(TwoDButton, OnTwoD);
@@ -109,22 +113,22 @@ namespace Formify.Presentation
         /// <summary>The kit's ViewToggle: one panel, two 66 x 38 segments, 3 px of inner padding.</summary>
         private void BuildButtons()
         {
-            _root = NewUiObject("ViewToggle", _canvas.transform);
-            _root.anchorMin = new Vector2(0.5f, 1f);
-            _root.anchorMax = new Vector2(0.5f, 1f);
-            _root.pivot = new Vector2(0.5f, 1f);
-            _root.anchoredPosition = new Vector2(0f, -topMargin);
-            _root.sizeDelta = new Vector2(buttonWidth * 2f + spacing + 6f, buttonHeight + 6f);
-            HudTheme.AddPanelBackground(_root, HudTheme.PanelFill, HudTheme.PanelBorder);
+            root = NewUiObject("ViewToggle", canvas.transform);
+            root.anchorMin = new Vector2(0.5f, 1f);
+            root.anchorMax = new Vector2(0.5f, 1f);
+            root.pivot = new Vector2(0.5f, 1f);
+            root.anchoredPosition = new Vector2(0f, -topMargin);
+            root.sizeDelta = new Vector2(buttonWidth * 2f + spacing + 6f, buttonHeight + 6f);
+            HudTheme.AddPanelBackground(root, HudTheme.PanelFill, HudTheme.PanelBorder);
 
             float offset = (buttonWidth + spacing) * 0.5f;
-            TwoDButton = CreateButton("Seg2D", "2D", -offset);
-            ThreeDButton = CreateButton("Seg3D", "3D", offset);
+            twoDButton = CreateButton("Seg2D", "2D", -offset);
+            threeDButton = CreateButton("Seg3D", "3D", offset);
         }
 
         private Button CreateButton(string objectName, string label, float x)
         {
-            RectTransform rt = NewUiObject(objectName, _root);
+            RectTransform rt = NewUiObject(objectName, root);
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);

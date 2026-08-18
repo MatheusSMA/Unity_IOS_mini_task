@@ -17,11 +17,13 @@ namespace Formify.Presentation
     {
         private const float DotSize = 6f;
 
+        // Serialized: the baked scene HUD (AD-025) carries the line; Configure only rebinds the modes.
+        [SerializeField] private TextMeshProUGUI label;
+
         private ModeManager _modes;
-        private TextMeshProUGUI _label;
 
         /// <summary>The line currently rendered. Null before the pill is built.</summary>
-        public string Text => _label != null ? _label.text : null;
+        public string Text => label != null ? label.text : null;
 
         /// <summary>The kit's HintPill node: anchor .5,0 · pivot .5,0 · pos 0,16 · height 36 · pill_fill_9s.</summary>
         public static HudHintPill Create(Transform parent, float bottomMargin = 16f, float height = 36f)
@@ -64,7 +66,7 @@ namespace Formify.Presentation
             dotLayout.flexibleWidth = 0f;
 
             var pill = root.gameObject.AddComponent<HudHintPill>();
-            pill._label = HudTheme.AddLabel(root, "Label", TextFor(Mode.Orbit), 11.5f, 50f, HudTheme.RowLabel,
+            pill.label = HudTheme.AddLabel(root, "Label", TextFor(Mode.Orbit), 11.5f, 50f, HudTheme.RowLabel,
                 TextAlignmentOptions.Center);
             return pill;
         }
@@ -84,7 +86,7 @@ namespace Formify.Presentation
 
         private void Refresh()
         {
-            if (_label != null) _label.text = TextFor(_modes != null ? _modes.Current : Mode.Orbit);
+            if (label != null) label.text = TextFor(_modes != null ? _modes.Current : Mode.Orbit);
         }
 
         private static string TextFor(Mode mode)

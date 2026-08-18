@@ -16,12 +16,19 @@ namespace Formify.Presentation
     [DisallowMultipleComponent]
     public class WindowModeButton : MonoBehaviour
     {
+        // Serialized: the baked scene HUD (AD-025) keeps the dot, so Configure only rebinds model and modes.
+        [SerializeField] Graphic stateDot;
+
         RoomModel model;
         ModeManager modes;
         Button button;
 
         /// <summary>The art kit's state dot, lit while window mode is active. Optional; the view assigns it.</summary>
-        public Graphic StateDot { get; set; }
+        public Graphic StateDot
+        {
+            get { return stateDot; }
+            set { stateDot = value; }
+        }
 
         /// <summary>Whether the button can be pressed right now. The GameObject stays active either way.</summary>
         public bool IsInteractable { get; private set; }

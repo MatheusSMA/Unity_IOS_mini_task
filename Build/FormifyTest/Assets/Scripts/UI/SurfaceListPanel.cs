@@ -26,24 +26,44 @@ namespace Formify.Presentation
         [SerializeField] private float headerHeight = 38f;
         [SerializeField] private float panelMargin = 8f;
 
+        // Serialized: the HUD baked into the scene (AD-025) brings its own canvas and panel, and play binds to
+        // what the scene holds instead of building a second one.
+        [SerializeField] private Canvas canvas;
+        [SerializeField] private RectTransform panelRoot;
+        [SerializeField] private GameObject rowContainer;
+        [SerializeField] private Button headerButton;
+        [SerializeField] private Image headerDot;
+        [SerializeField] private TMPro.TextMeshProUGUI headerCount;
+
         private readonly Dictionary<int, SurfaceRow> _rows = new Dictionary<int, SurfaceRow>();
 
         private RoomModel _model;
         private Func<bool> _canSelect;
-        private RectTransform _panelRoot;
-        private GameObject _rowContainer;
-        private Image _headerDot;
-        private TMPro.TextMeshProUGUI _headerCount;
         private GameObject _createdEventSystem;
 
-        /// <summary>The screen-space canvas this panel owns. Non-null from Awake onwards.</summary>
-        public Canvas Canvas { get; private set; }
+        /// <summary>The screen-space canvas this panel paints on. Non-null once EnsureCanvas has run.</summary>
+        public Canvas Canvas => canvas;
 
-        public bool IsCollapsed => _rowContainer != null && !_rowContainer.activeSelf;
+        public bool IsCollapsed => rowContainer != null && !rowContainer.activeSelf;
 
-        private void Awake()
+        private void Awake() => EnsureCanvas();
+
+        /// <summary>
+        /// The canvas the panel paints on: the one baked into the scene (AD-025) when there is one, a fresh one
+        /// built here when there is not. It also re-wires the header's collapse click — a scene keeps the Button
+        /// but never the delegate, so the baked header would otherwise be dead.
+        /// </summary>
+        public Canvas EnsureCanvas()
         {
-            if (Canvas == null) BuildCanvas();
+            if (canvas == null) BuildCanvas();
+
+            if (headerButton != null)
+            {
+                headerButton.onClick.RemoveListener(ToggleCollapsed);
+                headerButton.onClick.AddListener(ToggleCollapsed);
+            }
+
+            return canvas;
         }
 
         /// <summary>
@@ -53,12 +73,21 @@ namespace Formify.Presentation
         /// </summary>
         public void Configure(RoomModel model, Func<bool> canSelect = null)
         {
-            if (Canvas == null) BuildCanvas();
+            EnsureCanvas();
 
             if (_model != null) _model.SelectionChanged -= OnSelectionChanged;
 
             // Group dividers are children too and belong to the old model, so the container is cleared wholesale.
-            foreach (Transform child in _rowContainer.transform) Destroy(child.gameObject);
+            // Destroy only lands at the end of the frame, so the old children are unparented first: left in the
+            // layout they would stack under the new rows for a frame — visible on a baked scene's first frame.
+            var stale = new List<Transform>();
+            foreach (Transform child in rowContainer.transform) stale.Add(child);
+            for (int i = 0; i < stale.Count; i++)
+            {
+                stale[i].SetParent(null, false);
+                Destroy(stale[i].gameObject);
+            }
+
             _rows.Clear();
 
             _model = model;
@@ -80,7 +109,7 @@ namespace Formify.Presentation
                 }
 
                 int surfaceId = surface.id;   // captured per row, not per loop variable
-                _rows[surfaceId] = SurfaceRow.Create(_rowContainer.transform, RowNamePrefix + surface.name, i,
+                _rows[surfaceId] = SurfaceRow.Create(rowContainer.transform, RowNamePrefix + surface.name, i,
                     surface.name, rowHeight, () => SelectRow(surfaceId));
             }
 
@@ -91,11 +120,11 @@ namespace Formify.Presentation
         /// <summary>Hides/shows the rows. The collapse control stays active either way (LIST AC4).</summary>
         public void ToggleCollapsed()
         {
-            if (_rowContainer == null) return;
+            if (rowContainer == null) return;
 
-            bool collapsing = _rowContainer.activeSelf;
-            _rowContainer.SetActive(!collapsing);
-            if (_headerDot != null) _headerDot.color = collapsing ? HudTheme.IdleLabel : HudTheme.Accent;
+            bool collapsing = rowContainer.activeSelf;
+            rowContainer.SetActive(!collapsing);
+            if (headerDot != null) headerDot.color = collapsing ? HudTheme.IdleLabel : HudTheme.Accent;
         }
 
         /// <summary>
@@ -139,13 +168,13 @@ namespace Formify.Presentation
 
         private void SetHeaderCount(int count)
         {
-            if (_headerCount != null) _headerCount.text = count.ToString();
+            if (headerCount != null) headerCount.text = count.ToString();
         }
 
         /// <summary>The kit's in-list rule: 1 px of rule_fade inside an 11 px band, decoration only.</summary>
         private void AddGroupDivider()
         {
-            RectTransform band = HudTheme.NewUi("Divider", _rowContainer.transform);
+            RectTransform band = HudTheme.NewUi("Divider", rowContainer.transform);
             LayoutElement element = band.gameObject.AddComponent<LayoutElement>();
             element.minHeight = 11f;
             element.preferredHeight = 11f;
@@ -161,9 +190,9 @@ namespace Formify.Presentation
         private void BuildCanvas()
         {
             RectTransform canvasRt = HudTheme.NewUi("FormifyCanvas", transform);
-            Canvas = canvasRt.gameObject.AddComponent<Canvas>();
-            Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            HudTheme.ApplyColorSpace(Canvas);
+            canvas = canvasRt.gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            HudTheme.ApplyColorSpace(canvas);
 
             CanvasScaler scaler = canvasRt.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -174,24 +203,24 @@ namespace Formify.Presentation
 
             EnsureEventSystem();
 
-            _panelRoot = HudTheme.NewUi("SurfacesPanel", canvasRt);
-            _panelRoot.anchorMin = new Vector2(0f, 1f);
-            _panelRoot.anchorMax = new Vector2(0f, 1f);
-            _panelRoot.pivot = new Vector2(0f, 1f);
-            _panelRoot.anchoredPosition = new Vector2(panelMargin, -panelMargin);
-            _panelRoot.sizeDelta = new Vector2(panelWidth, panelHeight);
-            HudTheme.AddPanelBackground(_panelRoot, HudTheme.PanelFill, HudTheme.PanelBorder);
+            panelRoot = HudTheme.NewUi("SurfacesPanel", canvasRt);
+            panelRoot.anchorMin = new Vector2(0f, 1f);
+            panelRoot.anchorMax = new Vector2(0f, 1f);
+            panelRoot.pivot = new Vector2(0f, 1f);
+            panelRoot.anchoredPosition = new Vector2(panelMargin, -panelMargin);
+            panelRoot.sizeDelta = new Vector2(panelWidth, panelHeight);
+            HudTheme.AddPanelBackground(panelRoot, HudTheme.PanelFill, HudTheme.PanelBorder);
 
             BuildHeader();
 
-            RectTransform rows = HudTheme.NewUi("Rows", _panelRoot);
+            RectTransform rows = HudTheme.NewUi("Rows", panelRoot);
             rows.anchorMin = new Vector2(0f, 0f);
             rows.anchorMax = new Vector2(1f, 1f);
             rows.offsetMin = new Vector2(6f, 6f);
             rows.offsetMax = new Vector2(-6f, -headerHeight);
-            _rowContainer = rows.gameObject;
+            rowContainer = rows.gameObject;
 
-            var layout = _rowContainer.AddComponent<VerticalLayoutGroup>();
+            var layout = rowContainer.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 2f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlWidth = true;
@@ -203,7 +232,7 @@ namespace Formify.Presentation
         /// <summary>The kit's header — dot plus "SURFACES" — and the collapse control in one (LIST-02 AC3).</summary>
         private void BuildHeader()
         {
-            RectTransform header = HudTheme.NewUi("Header", _panelRoot);
+            RectTransform header = HudTheme.NewUi("Header", panelRoot);
             header.anchorMin = new Vector2(0f, 1f);
             header.anchorMax = new Vector2(1f, 1f);
             header.pivot = new Vector2(0.5f, 1f);
@@ -213,9 +242,9 @@ namespace Formify.Presentation
             Image hit = HudTheme.AddImage(header, "HeaderFill", "row_fill_9s", HudTheme.NeutralFill,
                 Image.Type.Sliced, raycastTarget: true);
 
-            var button = header.gameObject.AddComponent<Button>();
-            button.targetGraphic = hit;
-            button.onClick.AddListener(ToggleCollapsed);
+            // The click itself is wired in EnsureCanvas, so the built and the baked header behave the same.
+            headerButton = header.gameObject.AddComponent<Button>();
+            headerButton.targetGraphic = hit;
 
             RectTransform dot = HudTheme.NewUi("Dot", header);
             dot.anchorMin = new Vector2(0f, 1f);
@@ -223,9 +252,9 @@ namespace Formify.Presentation
             dot.pivot = new Vector2(0f, 1f);
             dot.sizeDelta = new Vector2(6f, 6f);
             dot.anchoredPosition = new Vector2(12f, -16f);
-            _headerDot = dot.gameObject.AddComponent<Image>();
-            _headerDot.color = HudTheme.Accent;
-            _headerDot.raycastTarget = false;
+            headerDot = dot.gameObject.AddComponent<Image>();
+            headerDot.color = HudTheme.Accent;
+            headerDot.raycastTarget = false;
 
             RectTransform labelRect = HudTheme.NewUi("Label", header);
             labelRect.anchorMin = new Vector2(0f, 0f);
@@ -246,12 +275,12 @@ namespace Formify.Presentation
             countRect.pivot = new Vector2(1f, 0.5f);
             countRect.offsetMin = new Vector2(-34f, 0f);
             countRect.offsetMax = new Vector2(-12f, 0f);
-            _headerCount = countRect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
-            _headerCount.fontSize = 11f;
-            _headerCount.characterSpacing = HudTheme.Tracking(140f);
-            _headerCount.color = HudTheme.Caption;
-            _headerCount.alignment = TMPro.TextAlignmentOptions.MidlineRight;
-            _headerCount.raycastTarget = false;
+            headerCount = countRect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
+            headerCount.fontSize = 11f;
+            headerCount.characterSpacing = HudTheme.Tracking(140f);
+            headerCount.color = HudTheme.Caption;
+            headerCount.alignment = TMPro.TextAlignmentOptions.MidlineRight;
+            headerCount.raycastTarget = false;
 
             // Hairline under the header: 1 px tall, inset 10 px each side, decoration only.
             RectTransform divider = HudTheme.AddDivider(header).rectTransform;

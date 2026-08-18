@@ -19,23 +19,25 @@ namespace Formify.Presentation
         private const float ChipWidth = 18f;
         private const float TextInset = 14f;
 
+        // Serialized: the baked scene HUD (AD-025) carries these, so the readout paints without being built.
+        [SerializeField] private TextMeshProUGUI caption;
+        [SerializeField] private TextMeshProUGUI dimensions;
+        [SerializeField] private TextMeshProUGUI helper;
+        [SerializeField] private RectTransform helperRect;
+        [SerializeField] private RectTransform chip;
+        [SerializeField] private TextMeshProUGUI chipLabel;
+
         private RoomModel _model;
-        private TextMeshProUGUI _caption;
-        private TextMeshProUGUI _dimensions;
-        private TextMeshProUGUI _helper;
-        private RectTransform _helperRect;
-        private RectTransform _chip;
-        private TextMeshProUGUI _chipLabel;
 
         /// <summary>The surface name line, uppercased. Empty state included — never null once built.</summary>
-        public string Caption => _caption != null ? _caption.text : null;
+        public string Caption => caption != null ? caption.text : null;
 
-        public string Dimensions => _dimensions != null ? _dimensions.text : null;
+        public string Dimensions => dimensions != null ? dimensions.text : null;
 
-        public string Helper => _helper != null ? _helper.text : null;
+        public string Helper => helper != null ? helper.text : null;
 
         /// <summary>Whether the green window-count chip is showing (kit: only from the first window on).</summary>
-        public bool IsCountChipShown => _chip != null && _chip.gameObject.activeSelf;
+        public bool IsCountChipShown => chip != null && chip.gameObject.activeSelf;
 
         /// <summary>The kit's Readout node: anchor 0,1 · pivot 0,1 · pos 8,-404 · size 250x92.</summary>
         public static HudReadout Create(Transform parent, Vector2 anchoredPosition, Vector2 size)
@@ -50,23 +52,23 @@ namespace Formify.Presentation
 
             var readout = root.gameObject.AddComponent<HudReadout>();
 
-            readout._caption = Band(root, "Caption", 14f, 14f, 11f, 140f, HudTheme.Caption);
-            readout._dimensions = Band(root, "Dimensions", 32f, 24f, 15f, 0f, HudTheme.Accent);
+            readout.caption = Band(root, "Caption", 14f, 14f, 11f, 140f, HudTheme.Caption);
+            readout.dimensions = Band(root, "Dimensions", 32f, 24f, 15f, 0f, HudTheme.Accent);
 
-            readout._helperRect = BandRect(root, "Helper", 62f, 16f);
-            readout._helper = Label(readout._helperRect, 11.5f, 50f, HudTheme.IdleLabel);
+            readout.helperRect = BandRect(root, "Helper", 62f, 16f);
+            readout.helper = Label(readout.helperRect, 11.5f, 50f, HudTheme.IdleLabel);
 
-            readout._chip = HudTheme.NewUi("CountChip", root);
-            readout._chip.anchorMin = new Vector2(0f, 1f);
-            readout._chip.anchorMax = new Vector2(0f, 1f);
-            readout._chip.pivot = new Vector2(0f, 1f);
-            readout._chip.anchoredPosition = new Vector2(TextInset, -62f);
-            readout._chip.sizeDelta = new Vector2(ChipWidth, 16f);
+            readout.chip = HudTheme.NewUi("CountChip", root);
+            readout.chip.anchorMin = new Vector2(0f, 1f);
+            readout.chip.anchorMax = new Vector2(0f, 1f);
+            readout.chip.pivot = new Vector2(0f, 1f);
+            readout.chip.anchoredPosition = new Vector2(TextInset, -62f);
+            readout.chip.sizeDelta = new Vector2(ChipWidth, 16f);
             // row_fill_9s for the same reason as the SELECTED tag: pill_fill_9s's 24 px corner has no room here.
-            HudTheme.AddImage(readout._chip, "ChipFill", "row_fill_9s", HudTheme.Accent);
-            readout._chipLabel = HudTheme.AddLabel(readout._chip, "ChipLabel", "0", 10f, 0f, HudTheme.TagText,
+            HudTheme.AddImage(readout.chip, "ChipFill", "row_fill_9s", HudTheme.Accent);
+            readout.chipLabel = HudTheme.AddLabel(readout.chip, "ChipLabel", "0", 10f, 0f, HudTheme.TagText,
                 TextAlignmentOptions.Center);
-            readout._chip.gameObject.SetActive(false);
+            readout.chip.gameObject.SetActive(false);
 
             readout.Refresh();
             return readout;
@@ -101,22 +103,22 @@ namespace Formify.Presentation
 
             if (selected == null)
             {
-                SetText(_caption, "NO SURFACE");
-                SetText(_dimensions, "--  ×  -- <size=11>m</size>");
-                SetText(_helper, "tap a surface to select");
+                SetText(caption, "NO SURFACE");
+                SetText(dimensions, "--  ×  -- <size=11>m</size>");
+                SetText(helper, "tap a surface to select");
                 ShowChip(false, 0);
                 return;
             }
 
-            SetText(_caption, selected.name.ToUpperInvariant());
+            SetText(caption, selected.name.ToUpperInvariant());
             // Invariant, not the device locale: the kit shows a decimal point, and a phone set to pt-BR would
             // otherwise render "4,00 × 2,80".
-            SetText(_dimensions,
+            SetText(dimensions,
                 selected.width.ToString("0.00", CultureInfo.InvariantCulture) + "  ×  " +
                 selected.height.ToString("0.00", CultureInfo.InvariantCulture) + " <size=11>m</size>");
 
             int windows = _model.GetWindows(selected.id).Count;
-            SetText(_helper, windows == 0 ? "0 windows placed"
+            SetText(helper, windows == 0 ? "0 windows placed"
                 : windows == 1 ? "window placed"
                 : "windows placed");
             ShowChip(windows > 0, windows);
@@ -125,16 +127,16 @@ namespace Formify.Presentation
         /// <summary>The kit puts the count in a green chip; with none placed the line reads as plain helper text.</summary>
         private void ShowChip(bool show, int windows)
         {
-            if (_chip != null)
+            if (chip != null)
             {
-                _chip.gameObject.SetActive(show);
-                if (show && _chipLabel != null) _chipLabel.text = windows.ToString();
+                chip.gameObject.SetActive(show);
+                if (show && chipLabel != null) chipLabel.text = windows.ToString();
             }
 
-            if (_helperRect == null) return;
+            if (helperRect == null) return;
 
             float inset = show ? TextInset + ChipWidth + 6f : TextInset;
-            _helperRect.offsetMin = new Vector2(inset, _helperRect.offsetMin.y);
+            helperRect.offsetMin = new Vector2(inset, helperRect.offsetMin.y);
         }
 
         private static void SetText(TextMeshProUGUI label, string text)
