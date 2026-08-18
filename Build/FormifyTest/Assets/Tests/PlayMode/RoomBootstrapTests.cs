@@ -8,8 +8,8 @@ namespace Formify.Tests.PlayMode
     /// <summary>ROOM-01: the bootstrap assembles the room in code, no scene load and no prefabs.</summary>
     public class RoomBootstrapTests
     {
-        private const float RoomWidth = 6f;
-        private const float RoomDepth = 4f;
+        private const float RoomWidth = 9f;
+        private const float RoomDepth = 5f;
         private const float RoomHeight = 2.8f;
         private const float Thickness = 0.15f;
         private const float Tolerance = 0.0001f;
@@ -98,7 +98,7 @@ namespace Formify.Tests.PlayMode
             Assert.AreEqual(RoomHeight * 0.5f, bounds.center.y, Tolerance, "bounds centre height");
         }
 
-        /// <summary>Same footprint the bootstrap generates from its serialized 6 m x 4 m default.</summary>
+        /// <summary>Same footprint the bootstrap generates from its serialized 9 m x 5 m default.</summary>
         private static Vector2[] Footprint()
         {
             float x = RoomWidth * 0.5f;

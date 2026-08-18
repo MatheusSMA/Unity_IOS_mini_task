@@ -12,7 +12,8 @@ namespace Formify.Tests.EditMode
         const float Thickness = 0.15f;
         const float Tol = 1e-4f;
 
-        // Shipped default: 6 m x 4 m, counter-clockwise in XZ.
+        // The builder is footprint-agnostic, so this fixture keeps its own 6 m x 4 m rectangle (counter-clockwise
+        // in XZ) whatever the app ships as its room size.
         static List<Vector2> Rect() => new List<Vector2>
         {
             new Vector2(0f, 0f), new Vector2(6f, 0f), new Vector2(6f, 4f), new Vector2(0f, 4f)

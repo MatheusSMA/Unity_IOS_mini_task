@@ -21,14 +21,14 @@ namespace Formify.Tests.PlayMode
         // Serialized and private on OrbitCameraController; mirrors the spec default the assertions use.
         const float DegreesPerPixel = 0.2f;
 
-        // Wall 3 is the wall on the z = 2 plane of the default 6 x 4 room; the composed rig sits at the room
+        // Wall 3 is the wall on the z = 2.5 plane of the default 9 x 5 room; the composed rig sits at the room
         // centre looking down +Z, so both drag points land on it well inside the edge margin.
         const int Wall3Id = 2;
-        static readonly Vector3 DragFromWorld = new Vector3(-0.5f, 1.0f, 2f);
-        static readonly Vector3 DragToWorld = new Vector3(0.5f, 1.8f, 2f);
+        static readonly Vector3 DragFromWorld = new Vector3(-0.5f, 1.0f, 2.5f);
+        static readonly Vector3 DragToWorld = new Vector3(0.5f, 1.8f, 2.5f);
 
-        // Wall 3 has origin (3, 0, 2) and right = -X, so the two world points above are these wall-local metres.
-        static readonly Rect2D ExpectedRect = new Rect2D(2.5f, 1.0f, 1.0f, 0.8f);
+        // Wall 3 has origin (4.5, 0, 2.5) and right = -X, so the two world points above are these wall-local metres.
+        static readonly Rect2D ExpectedRect = new Rect2D(4.0f, 1.0f, 1.0f, 0.8f);
 
         GameObject cameraObject;
         GameObject bootstrapObject;

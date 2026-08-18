@@ -18,7 +18,7 @@ namespace Formify.Presentation
     {
         private const string LitShaderName = "Universal Render Pipeline/Lit";
 
-        [SerializeField] private Vector2 roomSize = new Vector2(6f, 4f);
+        [SerializeField] private Vector2 roomSize = new Vector2(9f, 5f);
         [SerializeField] private float height = 2.8f;
         [SerializeField] private float thickness = 0.15f;
 
